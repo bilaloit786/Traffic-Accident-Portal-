@@ -257,18 +257,6 @@ This is a class project for ILM College. For contributions:
 3. Write descriptive commit messages
 4. Submit pull requests for review
 
-## 📄 License
-
-This project is part of ILM College coursework (2022-2026).
-
-## 📞 Contact & Support
-
-- **Institution**: ILM College Gujrat
-- **Faculty**: Computing & Information Technology
-- **Supervisor**: Mr. Muhammad Bilal
-- **Email**: faculty@ilmcollege.edu.pk
-
----
 
 ## 🎉 Status
 
@@ -285,5 +273,3 @@ This project is part of ILM College coursework (2022-2026).
 **Status**: Production Ready
 
 ---
-
-**Built with ❤️ at ILM College Gujrat**
