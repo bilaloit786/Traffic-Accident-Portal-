@@ -6,15 +6,7 @@ A comprehensive Traffic Accident Prediction & Analysis Platform built with **Fas
 
 Real-time traffic accident analysis, visualization, and ML-powered prediction system for understanding and preventing road accidents.
 
-## 📚 Institution & Team
 
-| Property | Value |
-|----------|-------|
-| Institution | ILM College Gujrat |
-| Faculty | Computing & Information Technology |
-| Session | 2022-2026 |
-| Supervisor | Mr. Muhammad Bilal |
-| Team Members | Zainab Shafqat (22181519-002) <br> Fariha Iftikhar (22181519-001) <br> Sania Mubashir (22181519-003) |
 
 ## ✨ Key Features
 
@@ -62,7 +54,7 @@ Real-time traffic accident analysis, visualization, and ML-powered prediction sy
 
 ### Machine Learning
 - **Algorithm**: Random Forest Classifier
-- **Accuracy**: 57.65%
+- **Accuracy**: 57.65% (Currently Improving)
 - **Features**: Location, Time, Weather, Road Type
 - **Output**: Risk Level (Low/Medium/High)
 
