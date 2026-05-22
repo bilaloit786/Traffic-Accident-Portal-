@@ -47,16 +47,15 @@ class TimelineData(BaseModel):
 @router.get("/", response_model=List[AccidentResponse])
 def get_accidents(
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, le=1000),
+    limit: int = Query(100, le=50000),
     severity: Optional[str] = None,
     weather: Optional[str] = None,
     road_type: Optional[str] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_active_user)
+    db: Session = Depends(get_db)
 ):
-    """Get list of accidents with optional filters"""
+    """Get list of accidents with optional filters - PUBLIC endpoint"""
     query = db.query(Accident)
     
     # Apply filters

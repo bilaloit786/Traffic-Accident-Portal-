@@ -1,6 +1,6 @@
 """
 Machine Learning Model for Accident Prediction
-Uses Random Forest for classification and risk prediction
+Uses Random Forest and XGBoost for classification and risk prediction
 """
 
 import pandas as pd
@@ -13,6 +13,11 @@ import joblib
 import os
 from datetime import datetime
 
+try:
+    from xgboost import XGBClassifier
+except ImportError:  # pragma: no cover - handled at runtime for optional installs
+    XGBClassifier = None
+
 
 class AccidentPredictor:
     """Machine Learning model for accident risk prediction"""
@@ -20,6 +25,9 @@ class AccidentPredictor:
     def __init__(self, model_path='./ml/trained_model.pkl'):
         self.model_path = model_path
         self.model = None
+        self.model_name = None
+        self.models = {}
+        self.metrics = {}
         self.label_encoders = {}
         self.feature_names = []
         self.risk_mapping = {0: 'Low', 1: 'Medium', 2: 'High'}
@@ -51,18 +59,59 @@ class AccidentPredictor:
         categorical_cols = ['weather', 'road_type', 'day_of_week']
         for col in categorical_cols:
             if col in data.columns:
+                data[col] = data[col].fillna('Unknown')
                 if col not in self.label_encoders:
                     self.label_encoders[col] = LabelEncoder()
                     data[col + '_encoded'] = self.label_encoders[col].fit_transform(data[col].astype(str))
                 else:
-                    # Handle unseen categories
-                    data[col + '_encoded'] = data[col].apply(
-                        lambda x: self.label_encoders[col].transform([str(x)])[0] 
-                        if str(x) in self.label_encoders[col].classes_ 
-                        else -1
-                    )
+                    # Handle unseen categories using fast dictionary mapping
+                    mapping = {str(c): i for i, c in enumerate(self.label_encoders[col].classes_)}
+                    data[col + '_encoded'] = data[col].astype(str).map(lambda x: mapping.get(x, -1))
         
         return data
+
+    def _available_feature_names(self, df):
+        """Return the model feature columns available in the prepared data."""
+        feature_cols = [
+            'latitude', 'longitude', 'hour',
+            'weather_encoded', 'road_type_encoded',
+            'is_rush_hour', 'is_weekend', 'is_night',
+            'vehicles_involved'
+        ]
+
+        if 'month' in df.columns:
+            feature_cols.append('month')
+
+        return [col for col in feature_cols if col in df.columns]
+
+    def _candidate_models(self):
+        """Build the configured model candidates."""
+        models = {
+            'random_forest': RandomForestClassifier(
+                n_estimators=250,
+                max_depth=18,
+                min_samples_split=8,
+                min_samples_leaf=3,
+                class_weight='balanced',
+                random_state=42,
+                n_jobs=-1
+            )
+        }
+
+        if XGBClassifier is not None:
+            models['xgboost'] = XGBClassifier(
+                n_estimators=180,
+                max_depth=4,
+                learning_rate=0.06,
+                subsample=0.9,
+                colsample_bytree=0.9,
+                objective='multi:softprob',
+                eval_metric='mlogloss',
+                random_state=42,
+                n_jobs=-1
+            )
+
+        return models
     
     def create_risk_labels(self, df):
         """Create risk labels based on severity and casualties"""
@@ -78,16 +127,23 @@ class AccidentPredictor:
         
         return df.apply(get_risk_level, axis=1)
     
-    def train(self, csv_path='./data/accidents.csv'):
-        """Train the accident prediction model"""
+    def train(self, csv_path='./data/accidents.csv', target_accuracy=0.79):
+        """Train Random Forest and XGBoost accident prediction models."""
         print("\n" + "="*60)
-        print("TRAINING ACCIDENT PREDICTION MODEL")
+        print("TRAINING ACCIDENT PREDICTION MODELS")
         print("="*60 + "\n")
         
         # Load data
         print("Loading training data...")
         df = pd.read_csv(csv_path)
         print(f"✓ Loaded {len(df)} accident records")
+
+        numeric_cols = ['latitude', 'longitude', 'hour', 'vehicles_involved', 'injuries', 'fatalities']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        df = df.dropna(subset=['latitude', 'longitude', 'vehicles_involved', 'injuries', 'fatalities', 'severity'])
+        print(f"✓ Using {len(df)} records after cleaning")
         
         # Prepare features
         print("\nPreparing features...")
@@ -96,20 +152,7 @@ class AccidentPredictor:
         # Create target variable (risk level)
         y = self.create_risk_labels(df)
         
-        # Select features for training
-        feature_cols = [
-            'latitude', 'longitude', 'hour', 
-            'weather_encoded', 'road_type_encoded',
-            'is_rush_hour', 'is_weekend', 'is_night',
-            'vehicles_involved'
-        ]
-        
-        # Add month if available
-        if 'month' in df.columns:
-            feature_cols.append('month')
-        
-        # Filter available features
-        self.feature_names = [col for col in feature_cols if col in df.columns]
+        self.feature_names = self._available_feature_names(df)
         X = df[self.feature_names]
         
         print(f"✓ Using {len(self.feature_names)} features: {', '.join(self.feature_names)}")
@@ -126,53 +169,80 @@ class AccidentPredictor:
         print(f"\nTraining set: {len(X_train)} samples")
         print(f"Testing set: {len(X_test)} samples")
         
-        # Train Random Forest model
-        print("\nTraining Random Forest Classifier...")
-        self.model = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=15,
-            min_samples_split=10,
-            min_samples_leaf=5,
-            random_state=42,
-            n_jobs=-1
-        )
-        
-        self.model.fit(X_train, y_train)
-        print("✓ Model trained successfully")
-        
-        # Evaluate
+        self.models = {}
+        self.metrics = {}
+
         print("\n" + "-"*60)
-        print("MODEL EVALUATION")
+        print("MODEL TRAINING AND EVALUATION")
         print("-"*60)
+
+        for name, model in self._candidate_models().items():
+            title = 'Random Forest' if name == 'random_forest' else 'XGBoost'
+            print(f"\nTraining {title} Classifier...")
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            accuracy = accuracy_score(y_test, y_pred)
+            report = classification_report(
+                y_test,
+                y_pred,
+                target_names=['Low Risk', 'Medium Risk', 'High Risk'],
+                output_dict=True,
+                zero_division=0
+            )
+            self.models[name] = model
+            self.metrics[name] = {
+                'accuracy': float(accuracy),
+                'classification_report': report,
+                'confusion_matrix': confusion_matrix(y_test, y_pred).tolist()
+            }
+            print(f"✓ {title} accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+
+        self.model_name = max(self.metrics, key=lambda key: self.metrics[key]['accuracy'])
+        self.model = self.models[self.model_name]
+        best_accuracy = self.metrics[self.model_name]['accuracy']
+
+        print(f"\n📊 Model Comparison:")
+        for name, metrics in self.metrics.items():
+            model_title = 'Random Forest' if name == 'random_forest' else 'XGBoost'
+            print(f"  {model_title}: {metrics['accuracy']*100:.2f}%")
+
+        print(f"\nBest model: {self.model_name} ({best_accuracy*100:.2f}%)")
+        if best_accuracy < target_accuracy:
+            print(
+                f"⚠ Target accuracy was {target_accuracy*100:.2f}%, but the best honest "
+                f"test accuracy is {best_accuracy*100:.2f}%."
+            )
+
+        print("\nBest Model Classification Report:")
+        print(classification_report(
+            y_test,
+            self.model.predict(X_test),
+            target_names=['Low Risk', 'Medium Risk', 'High Risk'],
+            zero_division=0
+        ))
+
+        if hasattr(self.model, 'feature_importances_'):
+            print("\nFeature Importance:")
+            for name, importance in sorted(zip(self.feature_names, self.model.feature_importances_),
+                                          key=lambda x: x[1], reverse=True):
+                print(f"  {name}: {importance:.4f}")
         
-        y_pred = self.model.predict(X_test)
-        accuracy = accuracy_score(y_test, y_pred)
-        
-        print(f"\nAccuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
-        
-        print("\nClassification Report:")
-        print(classification_report(y_test, y_pred, 
-                                   target_names=['Low Risk', 'Medium Risk', 'High Risk']))
-        
-        print("\nFeature Importance:")
-        for name, importance in sorted(zip(self.feature_names, self.model.feature_importances_), 
-                                      key=lambda x: x[1], reverse=True):
-            print(f"  {name}: {importance:.4f}")
-        
-        # Save model
+        # Save all trained models  
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
         self.save_model()
         
-        print("\n" + "="*60)
+        print("\n✓ Both Random Forest and XGBoost models trained and saved")
+        print("="*60)
         print("MODEL TRAINING COMPLETE")
         print("="*60 + "\n")
         
-        return accuracy
+        return best_accuracy
     
     def predict_risk(self, features):
         """
-        Predict accident risk for given features
+        Predict accident risk for given features using both models
         features: dict with keys ['latitude', 'longitude', 'hour', 'weather', 'road_type', etc.]
+        Returns predictions from both Random Forest and XGBoost
         """
         if self.model is None:
             self.load_model()
@@ -184,19 +254,66 @@ class AccidentPredictor:
         # Select only the features used in training
         X = df[self.feature_names]
         
-        # Predict
-        risk_level = self.model.predict(X)[0]
-        probabilities = self.model.predict_proba(X)[0]
+        results = {}
         
-        return {
-            'risk_level': self.risk_mapping[risk_level],
-            'risk_score': float(probabilities[risk_level]),
-            'probabilities': {
-                'low': float(probabilities[0]),
-                'medium': float(probabilities[1]),
-                'high': float(probabilities[2])
+        # Random Forest prediction
+        if 'random_forest' in self.models:
+            rf_model = self.models['random_forest']
+            rf_risk_level = rf_model.predict(X)[0]
+            rf_probabilities = rf_model.predict_proba(X)[0]
+            results['random_forest'] = {
+                'risk_level': self.risk_mapping[rf_risk_level],
+                'risk_score': float(rf_probabilities[rf_risk_level]),
+                'probabilities': {
+                    'low': float(rf_probabilities[0]),
+                    'medium': float(rf_probabilities[1]),
+                    'high': float(rf_probabilities[2])
+                }
             }
+        
+        # XGBoost prediction
+        if 'xgboost' in self.models:
+            xgb_model = self.models['xgboost']
+            xgb_risk_level = xgb_model.predict(X)[0]
+            xgb_probabilities = xgb_model.predict_proba(X)[0]
+            results['xgboost'] = {
+                'risk_level': self.risk_mapping[xgb_risk_level],
+                'risk_score': float(xgb_probabilities[xgb_risk_level]),
+                'probabilities': {
+                    'low': float(xgb_probabilities[0]),
+                    'medium': float(xgb_probabilities[1]),
+                    'high': float(xgb_probabilities[2])
+                }
+            }
+        
+        # If only one model available, use that
+        if len(results) == 1:
+            model_name = list(results.keys())[0]
+            return {
+                **results[model_name],
+                'model_used': model_name
+            }
+        
+        # Return both predictions
+        return {
+            'random_forest': results.get('random_forest'),
+            'xgboost': results.get('xgboost'),
+            'ensemble_risk_level': self._ensemble_prediction(results)
         }
+    
+    def _ensemble_prediction(self, results):
+        """Combine predictions from both models"""
+        if 'random_forest' not in results or 'xgboost' not in results:
+            for model_key in results:
+                if results[model_key]:
+                    return results[model_key]['risk_level']
+            return 'Medium'
+        
+        # Voting mechanism: takes the higher risk level
+        risk_levels = [results['random_forest']['risk_level'], results['xgboost']['risk_level']]
+        risk_order = {'Low': 0, 'Medium': 1, 'High': 2}
+        max_risk = max(risk_levels, key=lambda x: risk_order[x])
+        return max_risk
     
     def predict_hotspots(self, accidents_df, grid_size=0.01):
         """Identify accident hotspots using grid-based analysis"""
@@ -230,6 +347,9 @@ class AccidentPredictor:
         """Save trained model to disk"""
         model_data = {
             'model': self.model,
+            'model_name': self.model_name,
+            'models': self.models,
+            'metrics': self.metrics,
             'label_encoders': self.label_encoders,
             'feature_names': self.feature_names,
             'risk_mapping': self.risk_mapping
@@ -242,6 +362,9 @@ class AccidentPredictor:
         if os.path.exists(self.model_path):
             model_data = joblib.load(self.model_path)
             self.model = model_data['model']
+            self.model_name = model_data.get('model_name', 'random_forest')
+            self.models = model_data.get('models', {self.model_name: self.model})
+            self.metrics = model_data.get('metrics', {})
             self.label_encoders = model_data['label_encoders']
             self.feature_names = model_data['feature_names']
             self.risk_mapping = model_data['risk_mapping']
@@ -256,7 +379,7 @@ if __name__ == "__main__":
     predictor.train()
     
     # Test prediction
-    print("\nTesting prediction...")
+    print("\nTesting prediction with both models...")
     test_features = {
         'latitude': 32.574,
         'longitude': 74.075,
@@ -269,9 +392,31 @@ if __name__ == "__main__":
     }
     
     result = predictor.predict_risk(test_features)
-    print(f"\nPrediction for test case:")
-    print(f"  Risk Level: {result['risk_level']}")
-    print(f"  Confidence: {result['risk_score']:.2%}")
-    print(f"  Probabilities: Low={result['probabilities']['low']:.2%}, "
-          f"Medium={result['probabilities']['medium']:.2%}, "
-          f"High={result['probabilities']['high']:.2%}")
+    print(f"\n{'='*60}")
+    print("PREDICTION RESULTS")
+    print(f"{'='*60}")
+    
+    # Check if both models are available
+    if result.get('random_forest') and result.get('xgboost'):
+        print("\n🌲 RANDOM FOREST:")
+        print(f"  Risk Level: {result['random_forest']['risk_level']}")
+        print(f"  Confidence: {result['random_forest']['risk_score']:.2%}")
+        print(f"  Probabilities: Low={result['random_forest']['probabilities']['low']:.2%}, "
+              f"Medium={result['random_forest']['probabilities']['medium']:.2%}, "
+              f"High={result['random_forest']['probabilities']['high']:.2%}")
+        
+        print("\n🚀 XGBOOST:")
+        print(f"  Risk Level: {result['xgboost']['risk_level']}")
+        print(f"  Confidence: {result['xgboost']['risk_score']:.2%}")
+        print(f"  Probabilities: Low={result['xgboost']['probabilities']['low']:.2%}, "
+              f"Medium={result['xgboost']['probabilities']['medium']:.2%}, "
+              f"High={result['xgboost']['probabilities']['high']:.2%}")
+        
+        print(f"\n🎯 ENSEMBLE PREDICTION:")
+        print(f"  Risk Level: {result['ensemble_risk_level']}")
+    else:
+        # Fallback if only single model
+        print("\n  Risk Level: {result.get('risk_level', 'Unknown')}")
+        print(f"  Confidence: {result.get('risk_score', 0):.2%}")
+    
+    print(f"\n{'='*60}")

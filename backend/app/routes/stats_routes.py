@@ -15,47 +15,64 @@ router = APIRouter(prefix="/api/stats", tags=["statistics"])
 
 @router.get("/overview")
 def get_overview_stats(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_active_user)
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db)
 ):
-    """Get overall statistics and trends"""
+    """Get overall statistics and trends - PUBLIC endpoint"""
+    def apply_filters(q):
+        if start_date:
+            q = q.filter(Accident.date >= start_date)
+        if end_date:
+            q = q.filter(Accident.date <= end_date)
+        return q
+
     # Total accidents
-    total = db.query(func.count(Accident.id)).scalar()
+    total = apply_filters(db.query(func.count(Accident.id))).scalar()
     
     # Severity breakdown
-    severity_counts = db.query(
+    severity_counts = apply_filters(db.query(
         Accident.severity,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.severity).all()
+    )).group_by(Accident.severity).all()
     
     # Total casualties
-    total_injuries = db.query(func.sum(Accident.injuries)).scalar() or 0
-    total_fatalities = db.query(func.sum(Accident.fatalities)).scalar() or 0
+    total_injuries = apply_filters(db.query(func.sum(Accident.injuries))).scalar() or 0
+    total_fatalities = apply_filters(db.query(func.sum(Accident.fatalities))).scalar() or 0
     
-    # Recent accidents (last 30 days)
+    # Recent accidents (last 30 days within the filtered range)
     from datetime import timedelta
-    thirty_days_ago = datetime.now() - timedelta(days=30)
-    recent_count = db.query(func.count(Accident.id)).filter(
-        Accident.datetime >= thirty_days_ago
-    ).scalar()
+    if end_date:
+        # If end_date is specified, look at the 30 days leading up to it
+        end_dt = datetime.combine(end_date, datetime.max.time())
+        recent_start = end_dt - timedelta(days=30)
+        recent_count = db.query(func.count(Accident.id)).filter(
+            Accident.datetime >= recent_start,
+            Accident.datetime <= end_dt
+        ).scalar()
+    else:
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_count = apply_filters(db.query(func.count(Accident.id)).filter(
+            Accident.datetime >= thirty_days_ago
+        )).scalar()
     
     # Most dangerous time
-    peak_hour = db.query(
+    peak_hour = apply_filters(db.query(
         Accident.hour,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.hour).order_by(func.count(Accident.id).desc()).first()
+    )).group_by(Accident.hour).order_by(func.count(Accident.id).desc()).first()
     
     # Most dangerous weather
-    dangerous_weather = db.query(
+    dangerous_weather = apply_filters(db.query(
         Accident.weather,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.weather).order_by(func.count(Accident.id).desc()).first()
+    )).group_by(Accident.weather).order_by(func.count(Accident.id).desc()).first()
     
     # Most dangerous road type
-    dangerous_road = db.query(
+    dangerous_road = apply_filters(db.query(
         Accident.road_type,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.road_type).order_by(func.count(Accident.id).desc()).first()
+    )).group_by(Accident.road_type).order_by(func.count(Accident.id).desc()).first()
     
     return {
         'total_accidents': total,
@@ -71,27 +88,36 @@ def get_overview_stats(
 
 @router.get("/by-time")
 def get_time_distribution(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_admin_user)
 ):
     """Get accident distribution by time periods"""
+    def apply_filters(q):
+        if start_date:
+            q = q.filter(Accident.date >= start_date)
+        if end_date:
+            q = q.filter(Accident.date <= end_date)
+        return q
+
     # By hour
-    by_hour = db.query(
+    by_hour = apply_filters(db.query(
         Accident.hour,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.hour).order_by(Accident.hour).all()
+    )).group_by(Accident.hour).order_by(Accident.hour).all()
     
     # By day of week
-    by_day = db.query(
+    by_day = apply_filters(db.query(
         Accident.day_of_week,
         func.count(Accident.id).label('count')
-    ).group_by(Accident.day_of_week).all()
+    )).group_by(Accident.day_of_week).all()
     
     # By month
-    by_month = db.query(
+    by_month = apply_filters(db.query(
         extract('month', Accident.datetime).label('month'),
         func.count(Accident.id).label('count')
-    ).group_by('month').order_by('month').all()
+    )).group_by('month').order_by('month').all()
     
     return {
         'by_hour': [{'hour': row.hour, 'count': row.count} for row in by_hour],
@@ -102,11 +128,20 @@ def get_time_distribution(
 
 @router.get("/by-weather")
 def get_weather_distribution(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_admin_user)
 ):
     """Get accident distribution by weather conditions"""
-    weather_stats = db.query(
+    def apply_filters(q):
+        if start_date:
+            q = q.filter(Accident.date >= start_date)
+        if end_date:
+            q = q.filter(Accident.date <= end_date)
+        return q
+
+    weather_stats = apply_filters(db.query(
         Accident.weather,
         func.count(Accident.id).label('total_count'),
         func.count(func.nullif(Accident.severity == 'Minor', False)).label('minor'),
@@ -115,7 +150,7 @@ def get_weather_distribution(
         func.count(func.nullif(Accident.severity == 'Fatal', False)).label('fatal'),
         func.sum(Accident.injuries).label('total_injuries'),
         func.sum(Accident.fatalities).label('total_fatalities')
-    ).group_by(Accident.weather).all()
+    )).group_by(Accident.weather).all()
     
     return [{
         'weather': row.weather,
@@ -133,18 +168,27 @@ def get_weather_distribution(
 
 @router.get("/by-road-type")
 def get_road_type_distribution(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_admin_user)
 ):
     """Get accident distribution by road type"""
-    road_stats = db.query(
+    def apply_filters(q):
+        if start_date:
+            q = q.filter(Accident.date >= start_date)
+        if end_date:
+            q = q.filter(Accident.date <= end_date)
+        return q
+
+    road_stats = apply_filters(db.query(
         Accident.road_type,
         func.count(Accident.id).label('total_count'),
         func.avg(Accident.injuries).label('avg_injuries'),
         func.avg(Accident.fatalities).label('avg_fatalities'),
         func.sum(Accident.injuries).label('total_injuries'),
         func.sum(Accident.fatalities).label('total_fatalities')
-    ).group_by(Accident.road_type).all()
+    )).group_by(Accident.road_type).all()
     
     return [{
         'road_type': row.road_type,

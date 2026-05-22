@@ -4,7 +4,7 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 
 const API_URL = 'http://localhost:8000/api'
 
-function Analytics() {
+function Analytics({ startDate, endDate }) {
     const [timeData, setTimeData] = useState(null)
     const [weatherData, setWeatherData] = useState([])
     const [roadData, setRoadData] = useState([])
@@ -12,14 +12,18 @@ function Analytics() {
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [startDate, endDate])
 
     const fetchData = async () => {
         try {
+            const params = {}
+            if (startDate) params.start_date = startDate
+            if (endDate) params.end_date = endDate
+
             const [timeRes, weatherRes, roadRes] = await Promise.all([
-                axios.get(`${API_URL}/stats/by-time`),
-                axios.get(`${API_URL}/stats/by-weather`),
-                axios.get(`${API_URL}/stats/by-road-type`)
+                axios.get(`${API_URL}/stats/by-time`, { params }),
+                axios.get(`${API_URL}/stats/by-weather`, { params }),
+                axios.get(`${API_URL}/stats/by-road-type`, { params })
             ])
             setTimeData(timeRes.data)
             setWeatherData(weatherRes.data)

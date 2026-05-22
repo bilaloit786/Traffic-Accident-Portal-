@@ -6,7 +6,7 @@ Traffic Accident Prediction & Analysis Portal
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
-from app.routes import accident_routes, prediction_routes, stats_routes, auth_routes
+from app.routes import accident_routes, prediction_routes, stats_routes, auth_routes, report_routes
 
 # Create FastAPI app
 app = FastAPI(
@@ -31,6 +31,7 @@ app.include_router(accident_routes.router)
 app.include_router(prediction_routes.router)
 app.include_router(stats_routes.router)
 app.include_router(auth_routes.router)
+app.include_router(report_routes.router)
 
 
 @app.on_event("startup")
