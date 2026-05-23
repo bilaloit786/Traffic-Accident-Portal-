@@ -70,6 +70,10 @@ function Reports() {
             {/* CSS Print Styles */}
             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
+                    @page {
+                        size: auto;
+                        margin: 0.75in;
+                    }
                     /* Hide site-wide headers, footers and navigation */
                     header, footer, .no-print, .report-controls {
                         display: none !important;
@@ -78,7 +82,8 @@ function Reports() {
                     body {
                         background: #ffffff !important;
                         color: #1e293b !important;
-                        font-size: 12pt;
+                        font-size: 9.5pt;
+                        line-height: 1.3 !important;
                         margin: 0;
                         padding: 0;
                     }
@@ -91,11 +96,12 @@ function Reports() {
                     /* Make card boundaries printable */
                     .glass-card {
                         background: none !important;
-                        border: 1px solid #94a3b8 !important;
+                        border: 1px solid #cbd5e1 !important;
                         box-shadow: none !important;
                         color: #1e293b !important;
                         page-break-inside: avoid;
-                        margin-bottom: 1.5rem !important;
+                        margin-bottom: 0.5rem !important;
+                        padding: 0.75rem !important;
                         transform: none !important;
                     }
                     /* Headings color fix */
@@ -104,14 +110,15 @@ function Reports() {
                         background: none !important;
                         -webkit-text-fill-color: initial !important;
                         text-shadow: none !important;
+                        margin-bottom: 0.5rem !important;
                     }
                     .print-header-block {
                         display: flex !important;
                         flex-direction: column;
                         align-items: center;
                         border-bottom: 2px solid #0f172a;
-                        padding-bottom: 1rem;
-                        margin-bottom: 2rem;
+                        padding-bottom: 0.5rem;
+                        margin-bottom: 1rem;
                     }
                     table {
                         border-collapse: collapse !important;
@@ -120,10 +127,26 @@ function Reports() {
                     th, td {
                         border: 1px solid #cbd5e1 !important;
                         color: #000000 !important;
+                        padding: 0.2rem 0.4rem !important;
+                        font-size: 9pt;
                     }
                     /* Keep charts clean on print */
                     .recharts-responsive-container {
-                        max-height: 250px !important;
+                        max-height: 180px !important;
+                    }
+                    /* Overrides to condense space and minimize pages */
+                    .report-print-area > div {
+                        margin-bottom: 1rem !important;
+                    }
+                    .report-print-area h3 {
+                        font-size: 1.1rem !important;
+                        margin-bottom: 0.5rem !important;
+                    }
+                    .report-print-area .glass-card > div[style*="gap"] {
+                        gap: 0.5rem !important;
+                    }
+                    div[style*="margin-bottom: 2rem"] {
+                        margin-bottom: 0.75rem !important;
                     }
                 }
                 .print-header-block {
