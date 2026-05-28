@@ -3,11 +3,22 @@ import axios from 'axios'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const API_URL = 'http://localhost:8000/api'
+const REPORT_DATA_MIN_DATE = '2020-01-01'
+const REPORT_DATA_MAX_DATE = '2025-03-31'
+const DEFAULT_REPORT_START_DATE = '2025-03-01'
+const DEFAULT_REPORT_END_DATE = '2025-03-31'
+
+const addDaysCapped = (dateValue, days) => {
+    const start = new Date(dateValue)
+    start.setDate(start.getDate() + days)
+    const calculated = start.toISOString().split('T')[0]
+    return calculated > REPORT_DATA_MAX_DATE ? REPORT_DATA_MAX_DATE : calculated
+}
 
 function Reports() {
-    const [periodType, setPeriodType] = useState('weekly') // weekly, half_monthly, monthly, custom
-    const [startDate, setStartDate] = useState('2025-12-01')
-    const [endDate, setEndDate] = useState('2025-12-07')
+    const [periodType, setPeriodType] = useState('custom') // weekly, half_monthly, monthly, custom
+    const [startDate, setStartDate] = useState(DEFAULT_REPORT_START_DATE)
+    const [endDate, setEndDate] = useState(DEFAULT_REPORT_END_DATE)
     const [reportData, setReportData] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -15,17 +26,11 @@ function Reports() {
     // Automatically calculate end date when start date or period changes
     useEffect(() => {
         if (periodType === 'weekly') {
-            const start = new Date(startDate)
-            start.setDate(start.getDate() + 6)
-            setEndDate(start.toISOString().split('T')[0])
+            setEndDate(addDaysCapped(startDate, 6))
         } else if (periodType === 'half_monthly') {
-            const start = new Date(startDate)
-            start.setDate(start.getDate() + 14)
-            setEndDate(start.toISOString().split('T')[0])
+            setEndDate(addDaysCapped(startDate, 14))
         } else if (periodType === 'monthly') {
-            const start = new Date(startDate)
-            start.setDate(start.getDate() + 29)
-            setEndDate(start.toISOString().split('T')[0])
+            setEndDate(addDaysCapped(startDate, 30))
         }
     }, [startDate, periodType])
 
@@ -74,6 +79,10 @@ function Reports() {
                         size: auto;
                         margin: 0.75in;
                     }
+                    html {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
                     /* Hide site-wide headers, footers and navigation */
                     header, footer, .no-print, .report-controls {
                         display: none !important;
@@ -83,7 +92,7 @@ function Reports() {
                         background: #ffffff !important;
                         color: #1e293b !important;
                         font-size: 9.5pt;
-                        line-height: 1.3 !important;
+                        line-height: 1.25 !important;
                         margin: 0;
                         padding: 0;
                     }
@@ -100,8 +109,8 @@ function Reports() {
                         box-shadow: none !important;
                         color: #1e293b !important;
                         page-break-inside: avoid;
-                        margin-bottom: 0.5rem !important;
-                        padding: 0.75rem !important;
+                        margin-bottom: 0.35rem !important;
+                        padding: 0.5rem !important;
                         transform: none !important;
                     }
                     /* Headings color fix */
@@ -110,15 +119,15 @@ function Reports() {
                         background: none !important;
                         -webkit-text-fill-color: initial !important;
                         text-shadow: none !important;
-                        margin-bottom: 0.5rem !important;
+                        margin-bottom: 0.3rem !important;
                     }
                     .print-header-block {
                         display: flex !important;
                         flex-direction: column;
                         align-items: center;
                         border-bottom: 2px solid #0f172a;
-                        padding-bottom: 0.5rem;
-                        margin-bottom: 1rem;
+                        padding-bottom: 0.35rem;
+                        margin-bottom: 0.55rem;
                     }
                     table {
                         border-collapse: collapse !important;
@@ -136,11 +145,11 @@ function Reports() {
                     }
                     /* Overrides to condense space and minimize pages */
                     .report-print-area > div {
-                        margin-bottom: 1rem !important;
+                        margin-bottom: 0.45rem !important;
                     }
                     .report-print-area h3 {
                         font-size: 1.1rem !important;
-                        margin-bottom: 0.5rem !important;
+                        margin-bottom: 0.3rem !important;
                     }
                     .report-print-area .glass-card > div[style*="gap"] {
                         gap: 0.5rem !important;
@@ -155,12 +164,15 @@ function Reports() {
             ` }} />
 
             <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '2rem', fontWeight: '700' }}>
-                    📋 Report Generator
-                </h2>
+                <div>
+                    <div className="eyebrow"><span className="live-dot"></span>Executive incident reporting</div>
+                    <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>
+                        Report Generator
+                    </h2>
+                </div>
                 {reportData && (
                     <button onClick={handlePrint} className="btn btn-primary">
-                        🖨️ Export / Print PDF
+                        Export / Print PDF
                     </button>
                 )}
             </div>
@@ -204,6 +216,8 @@ function Reports() {
                         <input
                             type="date"
                             value={startDate}
+                            min={REPORT_DATA_MIN_DATE}
+                            max={REPORT_DATA_MAX_DATE}
                             onChange={(e) => setStartDate(e.target.value)}
                             style={{
                                 padding: '0.45rem 0.8rem',
@@ -222,6 +236,8 @@ function Reports() {
                         <input
                             type="date"
                             value={endDate}
+                            min={startDate || REPORT_DATA_MIN_DATE}
+                            max={REPORT_DATA_MAX_DATE}
                             onChange={(e) => setEndDate(e.target.value)}
                             disabled={periodType !== 'custom'}
                             style={{
@@ -242,9 +258,12 @@ function Reports() {
                         className="btn btn-primary"
                         style={{ height: '38px', padding: '0 1.5rem', display: 'flex', alignItems: 'center' }}
                     >
-                        {loading ? 'Generating...' : '🔍 Generate Report'}
+                        {loading ? 'Generating...' : 'Generate Report'}
                     </button>
                 </div>
+                <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                    Available data window: {REPORT_DATA_MIN_DATE} to {REPORT_DATA_MAX_DATE}
+                </p>
             </div>
 
             {error && (
@@ -511,7 +530,7 @@ function Reports() {
                         {/* Recommendations */}
                         <div className="glass-card" style={{ padding: '1.5rem' }}>
                             <h3 style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--color-accent)' }}>
-                                💡 Mitigations & Recommendations
+                                Mitigations & Recommendations
                             </h3>
                             <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingLeft: '0', listStyle: 'none' }}>
                                 {reportData.recommendations.map((rec, idx) => (
@@ -524,7 +543,7 @@ function Reports() {
                                         borderBottom: idx < reportData.recommendations.length - 1 ? '1px solid rgba(148, 163, 184, 0.05)' : 'none',
                                         paddingBottom: '0.75rem'
                                     }}>
-                                        <span style={{ fontSize: '1.1rem' }}>🛡️</span>
+                                        <span className="live-dot" style={{ marginTop: '0.45rem' }}></span>
                                         <span style={{ color: 'var(--color-text-secondary)' }}>{rec}</span>
                                     </li>
                                 ))}

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, Polyline, useMap } from 'react-leaflet'
+import { useState, useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet'
 import ErrorBoundary from '../components/ErrorBoundary'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -56,13 +56,6 @@ const severityColors = {
     'Fatal': '#ef4444'
 }
 
-const weatherOptions = ['Clear', 'Cloudy', 'Rain', 'Heavy Rain', 'Fog', 'Snow']
-const dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const hourOptions = Array.from({ length: 24 }, (_, i) => ({
-    value: i,
-    label: `${String(i).padStart(2, '0')}:00`
-}))
-
 // Heatmap Layer using Leaflet.heat
 function HeatmapLayer({ points, loaded }) {
     const map = useMap()
@@ -92,6 +85,8 @@ function HeatmapLayer({ points, loaded }) {
 }
 
 const API_URL = 'http://localhost:8000/api'
+const DEFAULT_MAP_START_DATE = '2025-03-01'
+const DEFAULT_MAP_END_DATE = '2025-03-31'
 
 function MapView({ startDate, endDate }) {
     const [accidents, setAccidents] = useState([])
@@ -101,12 +96,6 @@ function MapView({ startDate, endDate }) {
     const [loading, setLoading] = useState(true)
     const [activeView, setActiveView] = useState('accidents')
     const [mapCenter] = useState([32.574, 74.075]) // Gujrat, Pakistan
-
-    const [roadSegments, setRoadSegments] = useState([])
-    const [roadFilterHour, setRoadFilterHour] = useState(18)
-    const [roadFilterWeather, setRoadFilterWeather] = useState('Clear')
-    const [roadFilterDay, setRoadFilterDay] = useState('Monday')
-    const [roadLoading, setRoadLoading] = useState(false)
 
     // Load leaflet.heat script dynamically
     useEffect(() => {
@@ -137,9 +126,12 @@ function MapView({ startDate, endDate }) {
 
     const fetchData = async () => {
         try {
-            const params = {}
-            if (startDate) params.start_date = startDate
-            if (endDate) params.end_date = endDate
+            const usingDefaultWindow = !startDate && !endDate
+            const params = usingDefaultWindow
+                ? { start_date: DEFAULT_MAP_START_DATE, end_date: DEFAULT_MAP_END_DATE }
+                : {}
+            if (!usingDefaultWindow && startDate) params.start_date = startDate
+            if (!usingDefaultWindow && endDate) params.end_date = endDate
 
             const [accidentsRes, hotspotsRes, heatmapRes] = await Promise.all([
                 axios.get(`${API_URL}/accidents`, { params: { ...params, limit: 20000 } }),
@@ -150,35 +142,14 @@ function MapView({ startDate, endDate }) {
             setHotspots(hotspotsRes.data)
             setHeatmapData(heatmapRes.data)
             setLoading(false)
+            if (usingDefaultWindow) {
+                console.info(`Map default window: ${DEFAULT_MAP_START_DATE} to ${DEFAULT_MAP_END_DATE}`)
+            }
         } catch (error) {
             console.error('Error fetching map data:', error)
             setLoading(false)
         }
     }
-
-    const fetchRoadSeverity = async () => {
-        setRoadLoading(true)
-        try {
-            const response = await axios.get(`${API_URL}/predictions/road-severity`, {
-                params: {
-                    hour: roadFilterHour,
-                    weather: roadFilterWeather,
-                    day_of_week: roadFilterDay
-                }
-            })
-            setRoadSegments(response.data)
-        } catch (error) {
-            console.error('Error fetching road severity:', error)
-        } finally {
-            setRoadLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        if (activeView === 'roads') {
-            fetchRoadSeverity()
-        }
-    }, [activeView, roadFilterHour, roadFilterWeather, roadFilterDay])
 
     if (loading) {
         return (
@@ -188,21 +159,24 @@ function MapView({ startDate, endDate }) {
         )
     }
 
+    const isDefaultMapWindow = !startDate && !endDate
+    const mapWindowLabel = isDefaultMapWindow
+        ? `${DEFAULT_MAP_START_DATE} to ${DEFAULT_MAP_END_DATE}`
+        : `${startDate || 'beginning'} to ${endDate || 'latest'}`
+
     return (
         <div className="fade-in">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
                     <h2 style={{ fontSize: '2rem', fontWeight: '700' }}>
-                        🗺️ Interactive Maps
+                        Interactive Operations Map
                     </h2>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                        Showing {isDefaultMapWindow ? 'default last-month window' : 'selected date range'}: {mapWindowLabel}
+                    </p>
                     {activeView === 'accidents' && accidents.length > 500 && (
                         <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                            💡 Performance mode: displaying lightweight vector markers for {accidents.length} locations.
-                        </p>
-                    )}
-                    {activeView === 'roads' && (
-                        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
-                            💡 Displaying Google Maps-style color-coded road risk predictions from ML models.
+                            Performance mode: displaying lightweight vector markers for {accidents.length} locations.
                         </p>
                     )}
                 </div>
@@ -220,7 +194,7 @@ function MapView({ startDate, endDate }) {
                             transition: 'all 0.2s'
                         }}
                     >
-                        📍 Accident Points ({accidents.length})
+                        Accident Points ({accidents.length})
                     </button>
                     <button
                         onClick={() => setActiveView('heatmap')}
@@ -235,7 +209,7 @@ function MapView({ startDate, endDate }) {
                             transition: 'all 0.2s'
                         }}
                     >
-                        🔥 Heatmap Density ({heatmapData.length})
+                        Heatmap Density ({heatmapData.length})
                     </button>
                     <button
                         onClick={() => setActiveView('risk')}
@@ -250,107 +224,10 @@ function MapView({ startDate, endDate }) {
                             transition: 'all 0.2s'
                         }}
                     >
-                        🔮 Risk Zones ({hotspots.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveView('roads')}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            borderRadius: '0.5rem',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            background: activeView === 'roads' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--color-bg-tertiary)',
-                            color: activeView === 'roads' ? 'white' : 'var(--color-text-primary)',
-                            transition: 'all 0.2s'
-                        }}
-                    >
-                        🛣️ Road Severity ({roadSegments.length})
+                        Risk Zones ({hotspots.length})
                     </button>
                 </div>
             </div>
-
-            {/* Road Severity Prediction Controls */}
-            {activeView === 'roads' && (
-                <div className="glass-card" style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '1.5rem',
-                    padding: '1.25rem',
-                    marginBottom: '1.5rem',
-                    alignItems: 'center',
-                }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>WEATHER CONDITIONS</label>
-                        <select
-                            value={roadFilterWeather}
-                            onChange={(e) => setRoadFilterWeather(e.target.value)}
-                            style={{
-                                background: 'var(--color-bg-secondary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--glass-border)',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0.5rem',
-                                fontWeight: '500',
-                                outline: 'none',
-                                cursor: 'pointer',
-                                minWidth: '150px'
-                            }}
-                        >
-                            {weatherOptions.map(opt => <option key={opt} value={opt} style={{ background: 'var(--color-bg-secondary)' }}>{opt}</option>)}
-                        </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>TIME OF DAY</label>
-                        <select
-                            value={roadFilterHour}
-                            onChange={(e) => setRoadFilterHour(Number(e.target.value))}
-                            style={{
-                                background: 'var(--color-bg-secondary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--glass-border)',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0.5rem',
-                                fontWeight: '500',
-                                outline: 'none',
-                                cursor: 'pointer',
-                                minWidth: '120px'
-                            }}
-                        >
-                            {hourOptions.map(opt => <option key={opt.value} value={opt.value} style={{ background: 'var(--color-bg-secondary)' }}>{opt.label}</option>)}
-                        </select>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)' }}>DAY OF WEEK</label>
-                        <select
-                            value={roadFilterDay}
-                            onChange={(e) => setRoadFilterDay(e.target.value)}
-                            style={{
-                                background: 'var(--color-bg-secondary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--glass-border)',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0.5rem',
-                                fontWeight: '500',
-                                outline: 'none',
-                                cursor: 'pointer',
-                                minWidth: '150px'
-                            }}
-                        >
-                            {dayOptions.map(opt => <option key={opt} value={opt} style={{ background: 'var(--color-bg-secondary)' }}>{opt}</option>)}
-                        </select>
-                    </div>
-
-                    {roadLoading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)', fontWeight: '600', marginLeft: 'auto' }}>
-                            <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }}></div>
-                            <span style={{ fontSize: '0.875rem' }}>Calculating severity...</span>
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Main Map Container */}
             <div className="glass-card" style={{ padding: '0', overflow: 'hidden', height: '700px' }}>
@@ -428,38 +305,6 @@ function MapView({ startDate, endDate }) {
                             <HeatmapLayer points={heatmapData} loaded={heatmapLoaded} />
                         )}
 
-                        {/* Predicted Road Severity View */}
-                        {activeView === 'roads' && Array.isArray(roadSegments) && roadSegments.map((segment, idx) => {
-                            const color = segment.severity === 'High' ? '#ef4444' :
-                                          segment.severity === 'Medium' ? '#f59e0b' : '#10b981';
-                            return (
-                                <Polyline
-                                    key={idx}
-                                    positions={segment.coordinates}
-                                    pathOptions={{
-                                        color: color,
-                                        weight: 6,
-                                        opacity: 0.85
-                                    }}
-                                >
-                                    <Popup>
-                                        <div style={{ color: '#000', minWidth: '180px' }}>
-                                            <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.25rem' }}>
-                                                🛣️ {segment.road_name}
-                                            </h4>
-                                            <div style={{ fontSize: '0.875rem' }}>
-                                                <strong>Predicted Risk:</strong>{' '}
-                                                <span style={{ color: color, fontWeight: 'bold' }}>
-                                                    {segment.severity} Risk
-                                                </span><br />
-                                                <strong>Parameters:</strong> {roadFilterWeather}, {hourOptions.find(h => h.value === roadFilterHour)?.label || '18:00'}, {roadFilterDay}
-                                            </div>
-                                        </div>
-                                    </Popup>
-                                </Polyline>
-                            );
-                        })}
-
                         {/* Risk Zones View */}
                         {activeView === 'risk' && Array.isArray(hotspots) && hotspots
                             .filter(h => h.latitude != null && h.longitude != null && !isNaN(h.latitude) && !isNaN(h.longitude))
@@ -483,7 +328,7 @@ function MapView({ startDate, endDate }) {
                                         <Popup>
                                             <div style={{ color: '#000', minWidth: '180px' }}>
                                                 <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>
-                                                    🔥 Hotspot Zone
+                                                    Hotspot Zone
                                                 </h4>
                                                 <div style={{ fontSize: '0.875rem' }}>
                                                     <strong>Risk Level:</strong> <span style={{ color: color, fontWeight: 'bold' }}>
@@ -531,21 +376,6 @@ function MapView({ startDate, endDate }) {
                                 <span>Density Scale (Low ➔ High)</span>
                             </div>
                         </>
-                    ) : activeView === 'roads' ? (
-                        <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ width: '30px', height: '6px', background: '#10b981', borderRadius: '3px' }}></div>
-                                <span>Low Accident Risk</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ width: '30px', height: '6px', background: '#f59e0b', borderRadius: '3px' }}></div>
-                                <span>Medium Accident Risk</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <div style={{ width: '30px', height: '6px', background: '#ef4444', borderRadius: '3px' }}></div>
-                                <span>High Accident Risk</span>
-                            </div>
-                        </>
                     ) : (
                         <>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -567,75 +397,37 @@ function MapView({ startDate, endDate }) {
 
             {/* Summary Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-                {activeView === 'roads' ? (
-                    <>
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🛣️</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-primary)' }}>
-                                {roadSegments.length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Total Road Segments</div>
-                        </div>
+                <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📍</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-primary)' }}>
+                        {accidents.length}
+                    </div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>Accident Locations</div>
+                </div>
 
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔴</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-danger)' }}>
-                                {roadSegments.filter(s => s.severity === 'High').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>High Risk Segments</div>
-                        </div>
+                <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔥</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-danger)' }}>
+                        {hotspots.filter(h => h.severity === 'High').length}
+                    </div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>High Risk Zones</div>
+                </div>
 
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🟡</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-warning)' }}>
-                                {roadSegments.filter(s => s.severity === 'Medium').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Medium Risk Segments</div>
-                        </div>
+                <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-warning)' }}>
+                        {hotspots.filter(h => h.severity === 'Medium').length}
+                    </div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>Medium Risk Zones</div>
+                </div>
 
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🟢</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-success)' }}>
-                                {roadSegments.filter(s => s.severity === 'Low').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Low Risk Segments</div>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📍</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-primary)' }}>
-                                {accidents.length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Accident Locations</div>
-                        </div>
-
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔥</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-danger)' }}>
-                                {hotspots.filter(h => h.severity === 'High').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>High Risk Zones</div>
-                        </div>
-
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-warning)' }}>
-                                {hotspots.filter(h => h.severity === 'Medium').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Medium Risk Zones</div>
-                        </div>
-
-                        <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
-                            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
-                            <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-success)' }}>
-                                {hotspots.filter(h => h.severity === 'Low').length}
-                            </div>
-                            <div style={{ color: 'var(--color-text-muted)' }}>Low Risk Zones</div>
-                        </div>
-                    </>
-                )}
+                <div className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--color-success)' }}>
+                        {hotspots.filter(h => h.severity === 'Low').length}
+                    </div>
+                    <div style={{ color: 'var(--color-text-muted)' }}>Low Risk Zones</div>
+                </div>
             </div>
         </div>
     )

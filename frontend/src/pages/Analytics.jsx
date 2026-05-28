@@ -43,21 +43,30 @@ function Analytics({ startDate, endDate }) {
         )
     }
 
-    const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#06b6d4']
+    const COLORS = ['#3B82F6', '#06B6D4', '#F59E0B', '#EF4444', '#10B981', '#60A5FA']
 
     return (
         <div className="fade-in">
-            <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem' }}>
-                Analytics & Insights
-            </h2>
+            <div style={{ marginBottom: '2rem' }}>
+                <div className="eyebrow"><span className="live-dot"></span>Predictive trend intelligence</div>
+                <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>
+                    Analytics & Insights
+                </h2>
+            </div>
 
             {/* Hourly Distribution */}
             <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-                    📊 Accidents by Hour of Day
+                    Accidents by Hour of Day
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={timeData?.by_hour || []}>
+                        <defs>
+                            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#06B6D4" stopOpacity={0.95} />
+                                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0.55} />
+                            </linearGradient>
+                        </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" />
                         <XAxis dataKey="hour" stroke="#cbd5e1" />
                         <YAxis stroke="#cbd5e1" />
@@ -66,7 +75,7 @@ function Analytics({ startDate, endDate }) {
                             labelStyle={{ color: '#f1f5f9' }}
                         />
                         <Legend />
-                        <Bar dataKey="count" fill="#3b82f6" name="Accidents" />
+                        <Bar dataKey="count" fill="url(#barGradient)" radius={[6, 6, 0, 0]} name="Accidents" animationDuration={900} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -74,7 +83,7 @@ function Analytics({ startDate, endDate }) {
             {/* Weather Distribution */}
             <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-                    🌦️ Accidents by Weather Condition
+                    Accidents by Weather Condition
                 </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', alignItems: 'center' }}>
                     <ResponsiveContainer width="100%" height={300}>
@@ -124,7 +133,7 @@ function Analytics({ startDate, endDate }) {
             {/* Road Type Distribution */}
             <div className="glass-card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-                    🛣️ Accidents by Road Type
+                    Accidents by Road Type
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={roadData} layout="vertical">
@@ -135,8 +144,8 @@ function Analytics({ startDate, endDate }) {
                             contentStyle={{ background: 'rgba(30, 41, 59, 0.9)', border: '1px solid rgba(148, 163, 184, 0.2)', borderRadius: '0.5rem' }}
                         />
                         <Legend />
-                        <Bar dataKey="total_accidents" fill="#8b5cf6" name="Total Accidents" />
-                        <Bar dataKey="total_injuries" fill="#f59e0b" name="Total Injuries" />
+                        <Bar dataKey="total_accidents" fill="#3B82F6" radius={[0, 6, 6, 0]} name="Total Accidents" animationDuration={900} />
+                        <Bar dataKey="total_injuries" fill="#F59E0B" radius={[0, 6, 6, 0]} name="Total Injuries" animationDuration={900} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -145,7 +154,7 @@ function Analytics({ startDate, endDate }) {
             {timeData?.by_day_of_week && (
                 <div className="glass-card" style={{ padding: '1.5rem', marginTop: '2rem' }}>
                     <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem' }}>
-                        📅 Accidents by Day of Week
+                        Accidents by Day of Week
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={timeData.by_day_of_week}>
@@ -156,7 +165,7 @@ function Analytics({ startDate, endDate }) {
                                 contentStyle={{ background: 'rgba(30, 41, 59, 0.9)', border: '1px solid rgba(148, 163, 184, 0.2)', borderRadius: '0.5rem' }}
                             />
                             <Legend />
-                            <Line type="monotone" dataKey="count" stroke="#10b981" strokeWidth={2} name="Accidents" />
+                            <Line type="monotone" dataKey="count" stroke="#10B981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 7 }} name="Accidents" animationDuration={1000} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>

@@ -92,9 +92,12 @@ function Predictions() {
 
     return (
         <div className="fade-in">
-            <h2 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '2rem' }}>
-                🔮 Accident Risk Prediction
-            </h2>
+            <div style={{ marginBottom: '2rem' }}>
+                <div className="eyebrow"><span className="live-dot"></span>AI-driven operational intelligence</div>
+                <h2 style={{ fontSize: '2rem', fontWeight: '800' }}>
+                    Accident Risk Prediction
+                </h2>
+            </div>
 
             <div style={{ 
                 display: 'grid', 
@@ -294,7 +297,7 @@ function Predictions() {
                                     opacity: loading ? 0.6 : 1
                                 }}
                             >
-                                {loading ? 'Predicting...' : '🔮 Predict Risk'}
+                                {loading ? 'Predicting...' : 'Predict Risk'}
                             </button>
                         </div>
                     </form>
@@ -318,7 +321,7 @@ function Predictions() {
                                 style={{
                                     width: '100%',
                                     padding: '0.75rem',
-                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
+                                    background: 'linear-gradient(135deg, #3B82F6 0%, #06B6D4 100%)',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '0.5rem',
@@ -372,7 +375,7 @@ function Predictions() {
                             background: 'rgba(0, 0, 0, 0.1)'
                         }}>
                             <h3 style={{ fontSize: '1.5rem', fontWeight: '600', margin: 0, color: 'var(--color-text-primary)' }}>
-                                🔮 Risk Prediction Results
+                                    Risk Prediction Results
                             </h3>
                             <button
                                 onClick={() => setShowModal(false)}

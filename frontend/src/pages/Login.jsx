@@ -32,7 +32,9 @@ function Login({ onSwitchToRegister }) {
         }}>
             <div className="glass-card" style={{ padding: '2.5rem', width: '100%', maxWidth: '400px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚗</div>
+                    <div className="brand-mark" style={{ margin: '0 auto 1rem' }}>
+                        <span style={{ fontWeight: 800 }}>TP</span>
+                    </div>
                     <h1 className="gradient-text" style={{ fontSize: '2rem', fontWeight: 'bold' }}>Welcome Back</h1>
                     <p style={{ color: 'var(--color-text-muted)' }}>Sign in to access the portal</p>
                 </div>

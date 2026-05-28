@@ -8,50 +8,95 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
+const icons = {
+  dashboard: 'M3 13h8V3H3v10Zm10 8h8V3h-8v18ZM3 21h8v-6H3v6Z',
+  map: 'M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Zm0 0V3m6 18V6',
+  analytics: 'M4 19V5m0 14h16M8 16V9m4 7V7m4 9v-5',
+  predictions: 'M12 3l1.7 5.2H19l-4.3 3.1 1.7 5.2L12 13.4l-4.4 3.1 1.7-5.2L5 8.2h5.3L12 3Z',
+  reports: 'M6 3h9l3 3v15H6V3Zm8 0v4h4M9 11h6M9 15h6M9 19h3',
+  calendar: 'M7 3v3m10-3v3M4 9h16M5 5h14v16H5V5Z',
+  logout: 'M14 8V5a2 2 0 0 0-2-2H5v18h7a2 2 0 0 0 2-2v-3m3-8 4 4-4 4m4-4H9',
+  shield: 'M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6l-7-3Z',
+  pulse: 'M3 12h4l2-6 4 12 2-6h6',
+  menu: 'M4 7h16M4 12h16M4 17h16',
+  close: 'M6 6l12 12M18 6 6 18'
+}
+
+const MAP_DEFAULT_START_DATE = '2025-03-01'
+const MAP_DEFAULT_END_DATE = '2025-03-31'
+
+function Icon({ name, size = 18 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={icons[name]} />
+    </svg>
+  )
+}
+
 function MainApp() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [pendingStartDate, setPendingStartDate] = useState('')
+  const [pendingEndDate, setPendingEndDate] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const { user, logout } = useAuth()
 
-  // Role-based access control
-  const hasAccess = (pageId) => {
-    if (user?.role === 'admin') return true;
-    if (user?.role === 'traffic_police' && ['dashboard', 'map', 'predictions', 'reports'].includes(pageId)) return true;
-    if (user?.role === 'user' && ['dashboard', 'map'].includes(pageId)) return true;
-    return false;
-  };
+  const navigation = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['admin', 'traffic_police', 'user'] },
+    { id: 'map', label: 'Live Map', icon: 'map', roles: ['admin', 'traffic_police', 'user'] },
+    { id: 'analytics', label: 'Analytics', icon: 'analytics', roles: ['admin'] },
+    { id: 'predictions', label: 'AI Risk', icon: 'predictions', roles: ['admin', 'traffic_police'] },
+    { id: 'reports', label: 'Reports', icon: 'reports', roles: ['admin', 'traffic_police'] }
+  ].filter(item => item.roles.includes(user?.role))
 
-  const handlePresetClick = (preset) => {
-    switch (preset) {
-      case '2025':
-        setStartDate('2025-01-01');
-        setEndDate('2025-12-31');
-        break;
-      case '2024':
-        setStartDate('2024-01-01');
-        setEndDate('2024-12-31');
-        break;
-      case '2023':
-        setStartDate('2023-01-01');
-        setEndDate('2023-12-31');
-        break;
-      case 'all':
-      default:
-        setStartDate('');
-        setEndDate('');
-        break;
+  const hasAccess = (pageId) => {
+    if (user?.role === 'admin') return true
+    if (user?.role === 'traffic_police' && ['dashboard', 'map', 'predictions', 'reports'].includes(pageId)) return true
+    if (user?.role === 'user' && ['dashboard', 'map'].includes(pageId)) return true
+    return false
+  }
+
+  const clearDateWindow = () => {
+    setPendingStartDate('')
+    setPendingEndDate('')
+    setStartDate('')
+    setEndDate('')
+  }
+
+  const applyDateWindow = () => {
+    if (pendingStartDate && pendingEndDate && pendingStartDate > pendingEndDate) {
+      setStartDate(pendingEndDate)
+      setEndDate(pendingStartDate)
+      setPendingStartDate(pendingEndDate)
+      setPendingEndDate(pendingStartDate)
+      return
     }
-  };
+
+    setStartDate(pendingStartDate)
+    setEndDate(pendingEndDate)
+  }
 
   const renderPage = () => {
     if (!hasAccess(currentPage)) {
       return (
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-          <h2>🚫 Access Denied</h2>
-          <p>You do not have permission to view this page.</p>
+        <div className="glass-card access-denied">
+          <Icon name="shield" size={42} />
+          <h2>Access Denied</h2>
+          <p>You do not have permission to view this operational module.</p>
         </div>
-      );
+      )
     }
 
     switch (currentPage) {
@@ -70,275 +115,182 @@ function MainApp() {
     }
   }
 
+  const activePage = navigation.find(item => item.id === currentPage)
+  const shellClass = `app-shell ${collapsed ? 'is-collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`
+  const hasPendingDates = pendingStartDate || pendingEndDate
+  const hasAppliedDates = startDate || endDate
+  const hasUnappliedDateChanges = pendingStartDate !== startDate || pendingEndDate !== endDate
+  const dateWindowSummary = startDate || endDate
+    ? `Showing data from ${startDate || 'beginning'} to ${endDate || 'latest'}`
+    : currentPage === 'map'
+      ? `Map default: ${MAP_DEFAULT_START_DATE} to ${MAP_DEFAULT_END_DATE}. Select dates to change it.`
+      : 'Select a date range to filter records'
+  const dateWindowHelper = hasUnappliedDateChanges
+    ? 'Date selection changed. Click Search to update results.'
+    : dateWindowSummary
+
   return (
     <div className="app">
-      {/* Animated Background */}
       <div className="animated-bg"></div>
-
-      {/* Navigation Header */}
-      <header style={{
-        background: 'rgba(15, 23, 42, 0.9)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
-        padding: '1rem 2rem',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              borderRadius: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.5rem'
-            }}>
-              🚗
+      <div className={shellClass}>
+        <aside className="command-sidebar">
+          <div className="sidebar-brand">
+            <div className="brand-mark">
+              <Icon name="pulse" size={22} />
             </div>
+            <div className="brand-copy">
+              <strong>Traffic Accident Analysis Portal</strong>
+            </div>
+          </div>
+
+          <button
+            className="sidebar-collapse"
+            onClick={() => setCollapsed(value => !value)}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <Icon name={collapsed ? 'menu' : 'close'} size={17} />
+          </button>
+
+          <nav className="sidebar-nav" aria-label="Primary">
+            {navigation.map(item => (
+              <button
+                key={item.id}
+                className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentPage(item.id)
+                  setMobileOpen(false)
+                }}
+                title={item.label}
+              >
+                <span className="nav-icon"><Icon name={item.icon} /></span>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="sidebar-status">
+            <span className="live-dot"></span>
             <div>
-              <h1 className="gradient-text" style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '0.25rem' }}>
-                Traffic Accident Portal
-              </h1>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
-                  Prediction & Analysis System
-                </p>
-                {user && (
-                  <span
-                    className={`badge ${user.role === 'admin' ? 'badge-danger' : user.role === 'traffic_police' ? 'badge-warning' : 'badge-success'}`}
-                    style={{ fontSize: '0.75rem', padding: '0.1rem 0.5rem', textTransform: 'capitalize' }}
-                  >
-                    {user.role.replace('_', ' ')}
-                  </span>
-                )}
-              </div>
+              <strong>Live Ops</strong>
+              <span>API telemetry online</span>
             </div>
           </div>
+        </aside>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <nav style={{ display: 'flex', gap: '1rem' }}>
-              {[
-                { id: 'dashboard', label: 'Dashboard', icon: '📊', roles: ['admin', 'traffic_police', 'user'] },
-                { id: 'map', label: 'Map', icon: '🗺️', roles: ['admin', 'traffic_police', 'user'] },
-                { id: 'analytics', label: 'Analytics', icon: '📈', roles: ['admin'] },
-                { id: 'predictions', label: 'Predictions', icon: '🔮', roles: ['admin', 'traffic_police'] },
-                { id: 'reports', label: 'Reports', icon: '📋', roles: ['admin', 'traffic_police'] }
-              ]
-                .filter(item => item.roles.includes(user?.role))
-                .map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setCurrentPage(item.id)}
-                    className={currentPage === item.id ? 'btn-primary' : 'btn-secondary'}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      borderRadius: '0.5rem',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      ...(currentPage === item.id ? {
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                        color: 'white',
-                        boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)'
-                      } : {
-                        background: 'var(--color-bg-tertiary)',
-                        color: 'var(--color-text-primary)'
-                      })
-                    }}
-                  >
-                    <span>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-            </nav>
+        <div className="mobile-backdrop" onClick={() => setMobileOpen(false)}></div>
 
-            <button
-              onClick={logout}
-              style={{
-                background: 'none',
-                border: '1px solid var(--color-danger)',
-                color: 'var(--color-danger)',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => { e.target.style.background = 'var(--color-danger)'; e.target.style.color = 'white'; }}
-              onMouseOut={(e) => { e.target.style.background = 'none'; e.target.style.color = 'var(--color-danger)'; }}
-            >
-              Logout
+        <div className="workspace">
+          <header className="topbar">
+            <button className="mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
+              <Icon name="menu" />
             </button>
-          </div>
-        </div>
-      </header>
 
-      {/* Page Content */}
-      <main style={{ maxWidth: '1400px', margin: '2rem auto', padding: '0 2rem' }}>
-        {!['predictions', 'reports'].includes(currentPage) && (
-          <div className="glass-card fade-in" style={{
-            padding: '1.25rem 2rem',
-            marginBottom: '2rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1.5rem',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.2)'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>📅</span>
-              <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--color-text-primary)' }}>
-                  Filter Accidents by Date
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.1rem' }}>
-                  {startDate || endDate ? `Showing data from ${startDate || 'beginning'} to ${endDate || 'present'}` : 'Showing all historical records'}
-                </p>
+            <div className="topbar-title">
+              <div className="eyebrow">
+                <span className="live-dot"></span>
+                Emergency Operations Center
               </div>
+              <h1>{activePage?.label || 'Dashboard'}</h1>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-              {/* Presets */}
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginRight: '0.25rem' }}>Presets:</span>
-                {[
-                  { id: 'all', label: 'All Time' },
-                  { id: '2025', label: '2025' },
-                  { id: '2024', label: '2024' },
-                  { id: '2023', label: '2023' }
-                ].map(preset => {
-                  const isSelected = (preset.id === 'all' && !startDate && !endDate) ||
-                                     (preset.id === '2025' && startDate === '2025-01-01' && endDate === '2025-12-31') ||
-                                     (preset.id === '2024' && startDate === '2024-01-01' && endDate === '2024-12-31') ||
-                                     (preset.id === '2023' && startDate === '2023-01-01' && endDate === '2023-12-31');
-                  return (
+            <div className="topbar-actions">
+              <div className="ops-ticker" aria-label="Live status ticker">
+                <span>High-risk corridors monitored</span>
+                <span>ML inference ready</span>
+                <span>Incident feed synchronized</span>
+              </div>
+
+              {user && (
+                <span className={`role-chip ${user.role === 'admin' ? 'danger' : user.role === 'traffic_police' ? 'warning' : 'success'}`}>
+                  {user.role.replace('_', ' ')}
+                </span>
+              )}
+
+              <button className="logout-button" onClick={logout}>
+                <Icon name="logout" size={16} />
+                <span>Logout</span>
+              </button>
+            </div>
+          </header>
+
+          <main className="content-shell">
+            {!['predictions', 'reports'].includes(currentPage) && (
+              <section className="filter-bar glass-card fade-in">
+                <div className="filter-title">
+                  <span className="filter-icon"><Icon name="calendar" /></span>
+                  <div>
+                    <h3>Operational Date Window</h3>
+                    <p>{dateWindowHelper}</p>
+                  </div>
+                </div>
+
+                <div className="filter-controls">
+                  <div className="date-range">
+                    <label>
+                      <span>From</span>
+                      <input
+                        type="date"
+                        value={pendingStartDate}
+                        onChange={(e) => setPendingStartDate(e.target.value)}
+                      />
+                    </label>
+
+                    <label>
+                      <span>To</span>
+                      <input
+                        type="date"
+                        value={pendingEndDate}
+                        min={pendingStartDate || undefined}
+                        onChange={(e) => setPendingEndDate(e.target.value)}
+                      />
+                    </label>
+
                     <button
-                      key={preset.id}
-                      onClick={() => handlePresetClick(preset.id)}
-                      style={{
-                        padding: '0.4rem 0.8rem',
-                        borderRadius: '0.375rem',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontWeight: '600',
-                        background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'var(--color-bg-tertiary)',
-                        color: isSelected ? 'white' : 'var(--color-text-secondary)',
-                        transition: 'all 0.2s',
-                      }}
+                      className="search-filter btn-primary"
+                      onClick={applyDateWindow}
+                      disabled={!hasPendingDates && !hasAppliedDates}
                     >
-                      {preset.label}
+                      Search
                     </button>
-                  );
-                })}
-              </div>
 
-              {/* Custom Range */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>From</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.6rem',
-                      background: 'var(--color-bg-tertiary)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '0.375rem',
-                      color: 'var(--color-text-primary)',
-                      fontSize: '0.85rem',
-                      outline: 'none'
-                    }}
-                  />
+                    {(hasPendingDates || hasAppliedDates) && (
+                      <button className="clear-filter" onClick={clearDateWindow}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
+              </section>
+            )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>To</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    style={{
-                      padding: '0.4rem 0.6rem',
-                      background: 'var(--color-bg-tertiary)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '0.375rem',
-                      color: 'var(--color-text-primary)',
-                      fontSize: '0.85rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {(startDate || endDate) && (
-                  <button
-                    onClick={() => handlePresetClick('all')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--color-danger)',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      padding: '0.4rem'
-                    }}
-                  >
-                    Clear ✕
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        {renderPage()}
-      </main>
-
-      {/* Footer */}
-      <footer style={{
-        textAlign: 'center',
-        padding: '2rem',
-        marginTop: '4rem',
-        borderTop: '1px solid rgba(148, 163, 184, 0.1)',
-        color: 'var(--color-text-muted)'
-      }}>
-        <p>Traffic Accident Prediction & Analysis Portal</p>
-        <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-          ILM College Gujrat - Final Year Project 2025
-        </p>
-      </footer>
+            {renderPage()}
+          </main>
+        </div>
+      </div>
     </div>
   )
 }
 
 function AppContent() {
-  const { user, loading } = useAuth();
-  const [showRegister, setShowRegister] = useState(false);
+  const { user, loading } = useAuth()
+  const [showRegister, setShowRegister] = useState(false)
 
   if (loading) {
     return (
-      <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--color-bg-primary)' }}>
+      <div className="boot-screen">
         <div className="spinner"></div>
       </div>
-    );
+    )
   }
 
   if (!user) {
-    return showRegister ?
-      <Register onSwitchToLogin={() => setShowRegister(false)} /> :
-      <Login onSwitchToRegister={() => setShowRegister(true)} />;
+    return showRegister
+      ? <Register onSwitchToLogin={() => setShowRegister(false)} />
+      : <Login onSwitchToRegister={() => setShowRegister(true)} />
   }
 
-  return <MainApp />;
+  return <MainApp />
 }
 
 function App() {
