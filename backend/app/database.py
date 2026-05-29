@@ -97,6 +97,20 @@ class User(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class LoginAudit(Base):
+    """Login audit table for admin security monitoring"""
+    __tablename__ = "login_audit"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    user_id = Column(Integer, index=True, nullable=True)
+    ip_address = Column(String(80))
+    user_agent = Column(Text)
+    success = Column(Integer, default=0, index=True)
+    failure_reason = Column(String(120))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 # Database dependency for FastAPI
 def get_db():
     db = SessionLocal()

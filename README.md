@@ -1,275 +1,313 @@
-# Traffic Accident Portal 🚗📊
+# Traffic Accident Analysis Portal
 
-A comprehensive Traffic Accident Prediction & Analysis Platform built with **FastAPI**, **React + Vite**, and **Machine Learning**.
+A full-stack traffic accident analysis and prediction platform built with FastAPI, React, Vite, SQLite, Leaflet, Recharts, and machine learning.
 
-## 🎯 Project Overview
+The system helps visualize accident records, inspect high-risk areas, analyze patterns, generate reports, predict accident risk, and manage portal access through role-based admin controls.
 
-Real-time traffic accident analysis, visualization, and ML-powered prediction system for understanding and preventing road accidents.
+## Project Overview
 
+Traffic Accident Analysis Portal is designed for emergency operations and road safety analysis. It combines accident data, weather/road context, dashboard analytics, map visualization, report generation, and ML-powered risk prediction in one authenticated web application.
 
+## Institution And Team
 
-## ✨ Key Features
+| Property | Value |
+| --- | --- |
+| Institution | ILM College Gujrat |
+| Faculty | Computing & Information Technology |
+| Session | 2022-2026 |
+| Supervisor | Mr. Muhammad Bilal |
+| Team Members | Zainab Shafqat (22181519-002), Fariha Iftikhar (22181519-001), Sania Mubashir (22181519-003) |
 
-### 📊 Dashboard
-- 10,000+ accident records visualization
-- Severity breakdown (Fatal, Minor, Moderate, Severe)
-- Key statistics and trends
-- Recent incidents table
+## Features
 
-### 🗺️ Interactive Map
-- Leaflet-based mapping
-- Accident marker clusters
-- High-risk hotspot visualization
-- Real-time updates
+### Dashboard
 
-### 📈 Advanced Analytics
-- Hourly accident distribution patterns
-- Weather condition impact analysis
-- Road type comparison charts
-- Day-of-week trend analysis
-- Severity distribution insights
+- Accident overview cards for total accidents, injuries, fatalities, and recent incidents.
+- Severity breakdown for Minor, Moderate, Severe, and Fatal records.
+- Date-window filtering for operational analysis.
+- Detailed drill-down tables for selected dashboard metrics.
 
-### 🤖 ML-Powered Predictions
-- Location-based risk assessment
-- Time-aware predictions
-- Weather factor analysis
-- Real-time probability breakdown
-- Safety recommendations
+### Interactive Map
 
-## 🏗️ Technical Architecture
+- Leaflet-based accident map.
+- Accident markers with incident details.
+- Hotspot and high-risk area visualization.
+- Default March 2025 map window with optional date filtering.
 
-### Backend Stack
-- **Framework**: FastAPI (Python)
-- **Database**: SQLite
-- **ML**: Scikit-learn Random Forest
-- **API Docs**: Swagger UI + ReDoc
-- **Data**: 10,000+ records with realistic patterns
+### Analytics
 
-### Frontend Stack
-- **Framework**: React 18
-- **Bundler**: Vite
-- **Visualization**: Recharts
-- **Mapping**: Leaflet
-- **HTTP Client**: Axios
+- Hourly accident distribution.
+- Day-of-week and monthly patterns.
+- Weather impact analysis.
+- Road-type comparisons.
+- Severity and trend insights.
 
-### Machine Learning
-- **Algorithm**: Random Forest Classifier
-- **Accuracy**: 57.65% (Currently Improving)
-- **Features**: Location, Time, Weather, Road Type
-- **Output**: Risk Level (Low/Medium/High)
+### Predictions
 
-## 📁 Project Structure
+- ML-powered accident risk prediction.
+- Location, time, weather, and road-type inputs.
+- Risk level output with probability and contributing factors.
+- Safety recommendations for operational users.
 
-```
+### Reports
+
+- Weekly, half-monthly, monthly, and custom date reports.
+- Summary statistics and severity breakdowns.
+- Report view suitable for printing/exporting through the browser.
+
+### Admin And Security
+
+- JWT login and protected API routes.
+- Role-based access control for `admin`, `traffic_police`, and `user`.
+- Admin-only user management screen.
+- Admin can change user roles.
+- Admin can enable or disable accounts.
+- New public registrations are always created as normal `user` accounts.
+- Login activity audit log with username, IP address, user agent, result, and timestamp.
+- Inactive users are blocked from signing in.
+
+## Role Access
+
+| Module | Admin | Traffic Police | User |
+| --- | --- | --- | --- |
+| Dashboard | Yes | Yes | Yes |
+| Map | Yes | Yes | Yes |
+| Analytics | Yes | No | No |
+| Predictions | Yes | Yes | No |
+| Reports | Yes | Yes | No |
+| Admin | Yes | No | No |
+
+## Tech Stack
+
+### Backend
+
+- FastAPI
+- Uvicorn
+- SQLAlchemy
+- SQLite
+- Pydantic
+- JWT authentication with `python-jose`
+- Password hashing with Passlib/Bcrypt
+- Pandas, NumPy, Scikit-learn, XGBoost
+
+### Frontend
+
+- React
+- Vite
+- Axios
+- Recharts
+- Leaflet and React Leaflet
+- CSS modules/global CSS styling
+
+## Project Structure
+
+```text
 traffic-portal/
-│
-├── backend/                      # FastAPI Server
-│   ├── main.py                  # Entry point
-│   ├── database.py              # SQLite setup
-│   ├── models.py                # Database models
-│   ├── schemas.py               # Request/Response schemas
-│   ├── routes/
-│   │   ├── accidents.py         # Accident endpoints
-│   │   ├── statistics.py        # Statistics endpoints
-│   │   └── predictions.py       # ML prediction endpoints
+├── backend/
+│   ├── app/
+│   │   ├── core/
+│   │   │   └── auth.py
+│   │   ├── routes/
+│   │   │   ├── accident_routes.py
+│   │   │   ├── auth_routes.py
+│   │   │   ├── prediction_routes.py
+│   │   │   ├── report_routes.py
+│   │   │   └── stats_routes.py
+│   │   ├── database.py
+│   │   └── main.py
+│   ├── data/
 │   ├── ml/
-│   │   ├── train_model.py       # Model training
-│   │   └── trained_model.pkl    # Trained model
-│   ├── requirements.txt         # Dependencies
-│   └── traffic_db.db            # SQLite database
-│
-├── frontend/                     # React Application
+│   ├── requirements.txt
+│   └── traffic_db.db
+├── frontend/
 │   ├── src/
-│   │   ├── components/          # React components
-│   │   ├── pages/               # Page components
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── MapView.jsx
+│   │   ├── components/
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
+│   │   ├── pages/
+│   │   │   ├── Admin.jsx
 │   │   │   ├── Analytics.jsx
-│   │   │   └── Predictions.jsx
-│   │   ├── App.jsx              # Main app
-│   │   └── main.jsx             # Entry point
-│   ├── package.json             # Dependencies
-│   ├── vite.config.js           # Build config
-│   └── index.html
-│
-├── .gitignore                   # Git ignore patterns
-├── README.md                    # This file
-└── SETUP.md                     # Setup instructions (optional)
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── MapView.jsx
+│   │   │   ├── Predictions.jsx
+│   │   │   ├── Register.jsx
+│   │   │   └── Reports.jsx
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── package.json
+│   └── vite.config.js
+├── data/
+├── ml/
+├── scripts/
+└── README.md
 ```
 
-## 🚀 Quick Start
+## Requirements
 
-### Prerequisites
-- Python 3.8 or higher
-- Node.js 14 or higher
-- Git
+- Python 3.10 or higher
+- Node.js 20.19+ or 22.12+ recommended for Vite 7
+- npm
 
-### Backend Setup
+Node 18 may build with warnings in some environments, but Vite 7 officially requires Node 20.19+ or 22.12+.
+
+## Backend Setup
 
 ```bash
-# Navigate to backend
 cd backend
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
-
-# Run server
-python main.py
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Backend will start on: **http://localhost:8000**
+Backend runs at:
 
-### Frontend Setup
+```text
+http://localhost:8000
+```
+
+API docs:
+
+```text
+http://localhost:8000/api/docs
+http://localhost:8000/api/redoc
+```
+
+## Frontend Setup
 
 ```bash
-# Navigate to frontend
 cd frontend
-
-# Install dependencies
 npm install
-
-# Run development server
-npm run dev
+npm run dev -- --host 0.0.0.0
 ```
 
-Frontend will start on: **http://localhost:5173**
+Frontend runs at:
 
-## 📊 Database
+```text
+http://localhost:5173
+```
 
-- **Type**: SQLite 3
-- **Location**: `backend/traffic_db.db`
-- **Records**: 10,000+ accident incidents
-- **Schema**: Accidents, Road Segments, Weather Data
-
-## 🤖 Machine Learning
-
-**Model**: Random Forest Classifier
-
-**Features**:
-- Location (Latitude/Longitude)
-- Time (Hour of Day)
-- Weather Condition
-- Road Type
-
-**Performance**:
-- Accuracy: 57.65%
-- Prediction Time: < 100ms
-
-## 📡 API Endpoints
-
-### Interactive Documentation
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
-
-### Key Endpoints
-
-**Statistics**:
-- `GET /api/statistics/overview` - Overall stats
-- `GET /api/statistics/by-time` - Hourly patterns
-- `GET /api/statistics/by-weather` - Weather analysis
-- `GET /api/statistics/by-road-type` - Road comparison
-
-**Predictions**:
-- `POST /api/predictions/risk` - Risk prediction
-
-**Accidents**:
-- `GET /api/accidents/` - All accidents
-- `GET /api/accidents/{id}` - Specific accident
-- `GET /api/accidents/hotspots` - Risk hotspots
-
-## 🛠️ Technologies Used
-
-### Languages
-- Python 3.x
-- JavaScript (ES6+)
-- HTML5
-- CSS3
-
-### Key Libraries
-- **Backend**: FastAPI, SQLAlchemy, Scikit-learn, Pandas, NumPy
-- **Frontend**: React, Vite, Recharts, Leaflet, Axios
-
-## 🔒 Security & Privacy
-
-- `.gitignore` protects sensitive files
-- Database excluded from version control
-- ML models excluded from version control
-- Credentials stored in environment variables
-- No API keys in source code
-
-## 📈 Performance
-
-- Backend response time: < 200ms
-- Frontend load time: < 2 seconds
-- ML prediction time: < 100ms
-- Database query optimization with indexing
-
-## 🧪 Testing
+To build production assets:
 
 ```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests  
 cd frontend
-npm test
+npm run build
 ```
 
-## 📝 Environment Configuration
+To serve the built `dist` folder locally:
 
-Create `.env` file in backend directory:
-
+```bash
+cd frontend/dist
+python3 -m http.server 5173 --bind 0.0.0.0
 ```
-DATABASE_URL=sqlite:///traffic_db.db
+
+## Environment Configuration
+
+Create `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./traffic_db.db
+SECRET_KEY=change-this-secret-key
 API_HOST=0.0.0.0
 API_PORT=8000
 ENVIRONMENT=development
 ```
 
-## 🎓 Learning Resources
+## API Endpoints
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev/)
-- [Vite Guide](https://vitejs.dev/)
-- [Scikit-learn ML Guide](https://scikit-learn.org/)
+### Authentication
 
-## 📚 Future Enhancements
+- `POST /token` - Login and receive JWT token.
+- `POST /register` - Register a new normal user account.
+- `GET /users/me` - Get current authenticated user profile.
 
-- [ ] Real-time data integration
-- [ ] Mobile responsive design
-- [ ] Advanced ML models (XGBoost, Neural Networks)
-- [ ] Database scaling for larger datasets
-- [ ] User authentication system
-- [ ] Data export functionality
-- [ ] Email notifications for high-risk areas
-- [ ] API rate limiting
+### Admin
 
-## 🤝 Contributing
+- `GET /api/admin/users` - List users with roles, status, and last login.
+- `PATCH /api/admin/users/{user_id}/role` - Change a user's role.
+- `PATCH /api/admin/users/{user_id}/status` - Enable or disable a user account.
+- `GET /api/admin/login-activity` - View recent login activity.
+- `GET /api/admin/security-summary` - View security summary metrics.
 
-This is a class project for ILM College. For contributions:
-1. Create feature branches
-2. Follow PEP 8 style guide (Python)
-3. Write descriptive commit messages
-4. Submit pull requests for review
+### Accidents
 
+- `GET /api/accidents/` - List accident records.
+- `GET /api/accidents/{id}` - Get one accident record.
+- `GET /api/accidents/hotspots` - Get high-risk hotspot data.
 
-## 🎉 Status
+### Statistics
 
-✅ Backend: Running (FastAPI)
-✅ Frontend: Running (React + Vite)  
-✅ Database: Initialized (SQLite)
-✅ ML Model: Trained & Loaded
-✅ API Documentation: Active
+- `GET /api/stats/overview` - Dashboard overview.
+- `GET /api/stats/by-time` - Time distribution.
+- `GET /api/stats/by-weather` - Weather distribution.
+- `GET /api/stats/by-road-type` - Road-type distribution.
+- `GET /api/stats/severity-analysis` - Severity analysis.
+- `GET /api/stats/trends/monthly` - Monthly trends.
+- `GET /api/stats/trends/yearly` - Yearly trends.
 
----
+### Predictions And Reports
 
-**Last Updated**: February 2026
-**Version**: 1.0.0
-**Status**: Production Ready
+- `POST /api/predictions/predict` - Predict accident risk.
+- `GET /api/reports/generate` - Generate report data.
 
----
+## Database
+
+- Database: SQLite
+- Main file: `backend/traffic_db.db`
+- Core tables include accidents, roads, weather, predictions, users, and login audit records.
+
+The backend creates missing tables on startup through SQLAlchemy metadata.
+
+## Machine Learning
+
+- Model type: Random Forest Classifier
+- Features: latitude, longitude, hour/time, weather, and road type
+- Output: accident risk level and probability
+- Model file: `backend/ml/trained_model.pkl`
+
+If the installed Scikit-learn version differs from the version used to train the model, startup may show an `InconsistentVersionWarning`. The app can still run, but retraining the model with the current environment is recommended for long-term stability.
+
+## Verification
+
+Backend syntax/import check:
+
+```bash
+cd backend
+venv/bin/python -m py_compile app/database.py app/core/auth.py app/routes/auth_routes.py app/main.py
+venv/bin/python -c "from app.main import app; print('backend import ok')"
+```
+
+Frontend build:
+
+```bash
+cd frontend
+npm run build
+```
+
+Frontend lint:
+
+```bash
+cd frontend
+npm run lint
+```
+
+Note: the current project may still contain older lint warnings/errors in existing pages. Build verification is the main frontend smoke check unless those lint issues are cleaned up.
+
+## Security Notes
+
+- Change `SECRET_KEY` before production use.
+- Keep `.env`, databases, generated model files, and secrets out of public repositories.
+- Use HTTPS in production.
+- Consider adding rate limiting for login and prediction endpoints.
+- Consider adding password reset, account lockout, and refresh-token rotation for production deployment.
+
+## Future Enhancements
+
+- Real-time incident feed integration.
+- Email or SMS alerts for high-risk areas.
+- Improved model retraining pipeline.
+- Advanced audit filtering and export.
+- Deployment configuration with Docker.
+- API rate limiting and account lockout policy.

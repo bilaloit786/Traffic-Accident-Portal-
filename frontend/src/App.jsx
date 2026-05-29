@@ -4,6 +4,7 @@ import MapView from './pages/MapView'
 import Analytics from './pages/Analytics'
 import Predictions from './pages/Predictions'
 import Reports from './pages/Reports'
+import Admin from './pages/Admin'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -14,6 +15,7 @@ const icons = {
   analytics: 'M4 19V5m0 14h16M8 16V9m4 7V7m4 9v-5',
   predictions: 'M12 3l1.7 5.2H19l-4.3 3.1 1.7 5.2L12 13.4l-4.4 3.1 1.7-5.2L5 8.2h5.3L12 3Z',
   reports: 'M6 3h9l3 3v15H6V3Zm8 0v4h4M9 11h6M9 15h6M9 19h3',
+  admin: 'M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6l-7-3Zm-3 9 2 2 4-5',
   calendar: 'M7 3v3m10-3v3M4 9h16M5 5h14v16H5V5Z',
   logout: 'M14 8V5a2 2 0 0 0-2-2H5v18h7a2 2 0 0 0 2-2v-3m3-8 4 4-4 4m4-4H9',
   shield: 'M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6l-7-3Z',
@@ -58,7 +60,8 @@ function MainApp() {
     { id: 'map', label: 'Live Map', icon: 'map', roles: ['admin', 'traffic_police', 'user'] },
     { id: 'analytics', label: 'Analytics', icon: 'analytics', roles: ['admin'] },
     { id: 'predictions', label: 'AI Risk', icon: 'predictions', roles: ['admin', 'traffic_police'] },
-    { id: 'reports', label: 'Reports', icon: 'reports', roles: ['admin', 'traffic_police'] }
+    { id: 'reports', label: 'Reports', icon: 'reports', roles: ['admin', 'traffic_police'] },
+    { id: 'admin', label: 'Admin', icon: 'admin', roles: ['admin'] }
   ].filter(item => item.roles.includes(user?.role))
 
   const hasAccess = (pageId) => {
@@ -110,6 +113,8 @@ function MainApp() {
         return <Predictions />
       case 'reports':
         return <Reports />
+      case 'admin':
+        return <Admin />
       default:
         return <Dashboard startDate={startDate} endDate={endDate} />
     }
@@ -215,7 +220,7 @@ function MainApp() {
           </header>
 
           <main className="content-shell">
-            {!['predictions', 'reports'].includes(currentPage) && (
+            {!['predictions', 'reports', 'admin'].includes(currentPage) && (
               <section className="filter-bar glass-card fade-in">
                 <div className="filter-title">
                   <span className="filter-icon"><Icon name="calendar" /></span>
