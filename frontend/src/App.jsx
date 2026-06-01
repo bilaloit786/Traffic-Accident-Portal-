@@ -26,6 +26,8 @@ const icons = {
 
 const MAP_DEFAULT_START_DATE = '2025-03-01'
 const MAP_DEFAULT_END_DATE = '2025-03-31'
+const DATA_MIN_DATE = '2020-01-01'
+const DATA_MAX_DATE = '2025-03-31'
 
 function Icon({ name, size = 18 }) {
   return (
@@ -59,7 +61,7 @@ function MainApp() {
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['admin', 'traffic_police', 'user'] },
     { id: 'map', label: 'Live Map', icon: 'map', roles: ['admin', 'traffic_police', 'user'] },
     { id: 'analytics', label: 'Analytics', icon: 'analytics', roles: ['admin'] },
-    { id: 'predictions', label: 'AI Risk', icon: 'predictions', roles: ['admin', 'traffic_police'] },
+    { id: 'predictions', label: 'AI Risk', icon: 'predictions', roles: ['admin', 'traffic_police', 'user'] },
     { id: 'reports', label: 'Reports', icon: 'reports', roles: ['admin', 'traffic_police'] },
     { id: 'admin', label: 'Admin', icon: 'admin', roles: ['admin'] }
   ].filter(item => item.roles.includes(user?.role))
@@ -67,7 +69,7 @@ function MainApp() {
   const hasAccess = (pageId) => {
     if (user?.role === 'admin') return true
     if (user?.role === 'traffic_police' && ['dashboard', 'map', 'predictions', 'reports'].includes(pageId)) return true
-    if (user?.role === 'user' && ['dashboard', 'map'].includes(pageId)) return true
+    if (user?.role === 'user' && ['dashboard', 'map', 'predictions'].includes(pageId)) return true
     return false
   }
 
@@ -78,17 +80,33 @@ function MainApp() {
     setEndDate('')
   }
 
+  const openDatePicker = (event) => {
+    event.currentTarget.showPicker?.()
+  }
+
+  const clampDateToDataRange = (value) => {
+    if (!value) return ''
+    if (value < DATA_MIN_DATE) return DATA_MIN_DATE
+    if (value > DATA_MAX_DATE) return DATA_MAX_DATE
+    return value
+  }
+
   const applyDateWindow = () => {
-    if (pendingStartDate && pendingEndDate && pendingStartDate > pendingEndDate) {
-      setStartDate(pendingEndDate)
-      setEndDate(pendingStartDate)
-      setPendingStartDate(pendingEndDate)
-      setPendingEndDate(pendingStartDate)
+    const normalizedStartDate = clampDateToDataRange(pendingStartDate)
+    const normalizedEndDate = clampDateToDataRange(pendingEndDate)
+
+    if (normalizedStartDate && normalizedEndDate && normalizedStartDate > normalizedEndDate) {
+      setStartDate(normalizedEndDate)
+      setEndDate(normalizedStartDate)
+      setPendingStartDate(normalizedEndDate)
+      setPendingEndDate(normalizedStartDate)
       return
     }
 
-    setStartDate(pendingStartDate)
-    setEndDate(pendingEndDate)
+    setStartDate(normalizedStartDate)
+    setEndDate(normalizedEndDate)
+    setPendingStartDate(normalizedStartDate)
+    setPendingEndDate(normalizedEndDate)
   }
 
   const renderPage = () => {
@@ -129,7 +147,7 @@ function MainApp() {
     ? `Showing data from ${startDate || 'beginning'} to ${endDate || 'latest'}`
     : currentPage === 'map'
       ? `Map default: ${MAP_DEFAULT_START_DATE} to ${MAP_DEFAULT_END_DATE}. Select dates to change it.`
-      : 'Select a date range to filter records'
+      : `Select a date range between ${DATA_MIN_DATE} and ${DATA_MAX_DATE}`
   const dateWindowHelper = hasUnappliedDateChanges
     ? 'Date selection changed. Click Search to update results.'
     : dateWindowSummary
@@ -237,6 +255,9 @@ function MainApp() {
                       <input
                         type="date"
                         value={pendingStartDate}
+                        min={DATA_MIN_DATE}
+                        max={pendingEndDate || DATA_MAX_DATE}
+                        onClick={openDatePicker}
                         onChange={(e) => setPendingStartDate(e.target.value)}
                       />
                     </label>
@@ -246,7 +267,9 @@ function MainApp() {
                       <input
                         type="date"
                         value={pendingEndDate}
-                        min={pendingStartDate || undefined}
+                        min={pendingStartDate || DATA_MIN_DATE}
+                        max={DATA_MAX_DATE}
+                        onClick={openDatePicker}
                         onChange={(e) => setPendingEndDate(e.target.value)}
                       />
                     </label>

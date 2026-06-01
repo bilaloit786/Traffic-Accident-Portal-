@@ -10,7 +10,7 @@ from typing import Optional
 from datetime import date
 from pydantic import BaseModel
 from app.database import get_db, Accident, Road
-from app.core.auth import get_current_police_user
+from app.core.auth import get_current_active_user
 from ml.model import AccidentPredictor
 import pandas as pd
 import re
@@ -64,7 +64,7 @@ class HotspotResponse(BaseModel):
 def predict_accident_risk(
     request: PredictionRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_police_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Predict accident risk for given conditions using both Random Forest and XGBoost models"""
     if predictor.model is None:
@@ -171,7 +171,7 @@ def get_accident_hotspots(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_police_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get accident hotspot locations"""
     # Get all accidents with optional date filter
@@ -203,7 +203,7 @@ def get_accident_hotspots(
 @router.get("/risk-zones")
 def get_risk_zones(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_police_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get risk level zones for map visualization"""
     # Create a grid of predictions
@@ -252,7 +252,7 @@ def analyze_route(
     waypoints: list[dict],
     weather: str = "Clear",
     time_of_day: int = 12,
-    current_user: dict = Depends(get_current_police_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Analyze safety of a planned route"""
     if predictor.model is None:
@@ -407,7 +407,7 @@ def get_road_severity(
     weather: str = "Clear",
     day_of_week: str = "Monday",
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_police_user)
+    current_user: dict = Depends(get_current_active_user)
 ):
     """Get predicted road severity layers (Google Maps style red/orange/green polylines)"""
     global road_cache

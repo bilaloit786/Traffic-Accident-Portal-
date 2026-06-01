@@ -296,11 +296,14 @@ button {
 }
 
 .app-shell.is-collapsed .brand-copy,
-.app-shell.is-collapsed .nav-label,
 .app-shell.is-collapsed .sidebar-status div {
   opacity: 0;
   transform: translateX(-8px);
   pointer-events: none;
+}
+
+.app-shell.is-collapsed .nav-label {
+  display: none;
 }
 
 .app-shell.is-collapsed .nav-item {
@@ -691,12 +694,13 @@ input[type="date"] {
   background-position: right 0.74rem center !important;
   background-size: 18px 18px !important;
   color-scheme: dark;
+  cursor: pointer;
   font-weight: 650;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  opacity: 0;
+  opacity: 0.001;
 }
 
 input[type="date"]::-webkit-datetime-edit,
