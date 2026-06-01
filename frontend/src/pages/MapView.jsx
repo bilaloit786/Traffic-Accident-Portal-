@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, CircleMarker, useMap } from 'react-leaflet'
 import ErrorBoundary from '../components/ErrorBoundary'
+import FullscreenControl from '../components/FullscreenControl'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import axios from 'axios'
@@ -29,15 +30,22 @@ const createColoredIcon = (color) => {
 }
 
 // Map controller to handle map instance and resizing
-function MapController({ activeView }) {
+function MapController({ activeView, setZoom }) {
     const map = useMap()
 
     useEffect(() => {
+        if (setZoom) {
+            setZoom(map.getZoom())
+            map.on('zoomend', () => setZoom(map.getZoom()))
+        }
         const t = setTimeout(() => {
             map.invalidateSize()
         }, 100)
-        return () => clearTimeout(t)
-    }, [map, activeView])
+        return () => {
+            clearTimeout(t)
+            if (setZoom) map.off('zoomend')
+        }
+    }, [map, activeView, setZoom])
 
     return null
 }
@@ -96,6 +104,7 @@ function MapView({ startDate, endDate }) {
     const [loading, setLoading] = useState(true)
     const [activeView, setActiveView] = useState('accidents')
     const [mapCenter] = useState([32.574, 74.075]) // Gujrat, Pakistan
+    const [mapZoom, setMapZoom] = useState(13)
 
     // Load leaflet.heat script dynamically
     useEffect(() => {
@@ -238,7 +247,8 @@ function MapView({ startDate, endDate }) {
                         preferCanvas={true}
                         style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
                     >
-                        <MapController activeView={activeView} />
+                        <MapController activeView={activeView} setZoom={setMapZoom} />
+                        <FullscreenControl />
                         {/* OpenStreetMap Tiles */}
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -271,7 +281,7 @@ function MapView({ startDate, endDate }) {
                                     </div>
                                 );
 
-                                if (accidents.length <= 500) {
+                                if (accidents.length <= 500 && mapZoom >= 15) {
                                     return (
                                         <Marker
                                             key={accident.id}
@@ -282,11 +292,13 @@ function MapView({ startDate, endDate }) {
                                         </Marker>
                                     );
                                 } else {
+                                    // Scale points: base radius 5 at zoom 13, scales up/down
+                                    const dynamicRadius = Math.max(2, Math.min(mapZoom - 8, 12));
                                     return (
                                         <CircleMarker
                                             key={accident.id}
                                             center={position}
-                                            radius={5}
+                                            radius={dynamicRadius}
                                             pathOptions={{
                                                 color: 'rgba(255, 255, 255, 0.7)',
                                                 fillColor: severityColors[accident.severity] || severityColors.Minor,

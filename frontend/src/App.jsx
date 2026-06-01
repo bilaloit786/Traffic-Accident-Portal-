@@ -21,7 +21,9 @@ const icons = {
   shield: 'M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6l-7-3Z',
   pulse: 'M3 12h4l2-6 4 12 2-6h6',
   menu: 'M4 7h16M4 12h16M4 17h16',
-  close: 'M6 6l12 12M18 6 6 18'
+  close: 'M6 6l12 12M18 6 6 18',
+  chevronLeft: 'M15 18l-6-6 6-6',
+  chevronRight: 'M9 18l6-6-6-6'
 }
 
 const MAP_DEFAULT_START_DATE = '2025-03-01'
@@ -172,7 +174,7 @@ function MainApp() {
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <Icon name={collapsed ? 'menu' : 'close'} size={17} />
+            <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={17} />
           </button>
 
           <nav className="sidebar-nav" aria-label="Primary">

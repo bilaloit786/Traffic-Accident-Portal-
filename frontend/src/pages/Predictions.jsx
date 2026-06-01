@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-lea
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import ErrorBoundary from '../components/ErrorBoundary'
+import FullscreenControl from '../components/FullscreenControl'
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl
@@ -120,6 +121,7 @@ function Predictions() {
                                 zoom={13}
                                 style={{ height: '450px', width: '100%', borderRadius: '0.5rem' }}
                             >
+                                <FullscreenControl />
                                 <TileLayer
                                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
