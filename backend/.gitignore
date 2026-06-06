@@ -36,6 +36,7 @@ dist/
 *.h5
 *.model
 ml_models/
+!ml/trained_model.pkl
 
 # Logs and local files
 *.log
