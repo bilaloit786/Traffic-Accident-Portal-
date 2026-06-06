@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-
-const API_URL = 'http://localhost:8000/api'
+import { API_URL } from '../config/api'
 
 function Analytics({ startDate, endDate }) {
     const [timeData, setTimeData] = useState(null)

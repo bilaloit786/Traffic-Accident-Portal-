@@ -9,9 +9,10 @@ from sqlalchemy import func
 from typing import Optional
 from datetime import date
 from pydantic import BaseModel
-from app.database import get_db, Accident, Road
+from app.database import get_db, Accident, Prediction, Road
 from app.core.auth import get_current_active_user
 from ml.model import AccidentPredictor
+import json
 import pandas as pd
 import re
 import numpy as np
@@ -106,6 +107,23 @@ def predict_accident_risk(
                 'risk_level': xgb_pred['risk_level'],
                 'confidence': round(xgb_pred['risk_score'] * 100, 2)
             }
+
+        risk_probability = 0.0
+        for model_prediction in [rf_pred, xgb_pred]:
+            if model_prediction:
+                risk_probability = max(risk_probability, float(model_prediction.get('risk_score', 0.0)))
+
+        db.add(Prediction(
+            latitude=request.latitude,
+            longitude=request.longitude,
+            risk_level=ensemble_level,
+            risk_probability=risk_probability,
+            factors=json.dumps({
+                "input": features,
+                "model_comparison": model_comparison
+            })
+        ))
+        db.commit()
         
         # Generate recommendations based on ensemble prediction
         recommendations = []
@@ -159,6 +177,7 @@ def predict_accident_risk(
             nearest_road=nearest_road_name
         )
     except Exception as e:
+        db.rollback()
         print(f"ERROR in prediction endpoint: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()

@@ -5,6 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import ErrorBoundary from '../components/ErrorBoundary'
 import FullscreenControl from '../components/FullscreenControl'
+import { API_URL } from '../config/api'
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl
@@ -35,8 +36,6 @@ function MapRecenter({ lat, lng }) {
     }, [lat, lng, map])
     return null
 }
-
-const API_URL = 'http://localhost:8000/api'
 
 function Predictions() {
     const [formData, setFormData] = useState({

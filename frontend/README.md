@@ -1,5 +1,19 @@
 # React + Vite
 
+## Environment
+
+For deployment, set the backend API origin without a trailing slash:
+
+```env
+VITE_API_BASE_URL=https://your-render-backend.onrender.com
+```
+
+Local development defaults to:
+
+```text
+http://localhost:8000
+```
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

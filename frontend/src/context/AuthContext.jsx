@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
         const fetchUser = async () => {
             if (token) {
                 try {
-                    const response = await axios.get('http://localhost:8000/users/me');
+                    const response = await axios.get(`${API_BASE_URL}/users/me`);
                     setUser(response.data);
                 } catch (error) {
                     console.error("Failed to fetch user", error);
@@ -38,7 +39,7 @@ export const AuthProvider = ({ children }) => {
             formData.append('username', username);
             formData.append('password', password);
 
-            const response = await axios.post('http://localhost:8000/token', formData, {
+            const response = await axios.post(`${API_BASE_URL}/token`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' } // FastAPI OAuth2 expects form data
             });
 
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (username, email, password) => {
         try {
-            const response = await axios.post('http://localhost:8000/register', {
+            const response = await axios.post(`${API_BASE_URL}/register`, {
                 username,
                 email,
                 password,

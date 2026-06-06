@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-
-const API_URL = 'http://localhost:8000/api'
+import { API_URL } from '../config/api'
 
 function Dashboard({ startDate, endDate }) {
     const [stats, setStats] = useState(null)

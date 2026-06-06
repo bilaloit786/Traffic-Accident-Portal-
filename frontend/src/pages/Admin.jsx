@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config/api';
 
 const roles = [
     { value: 'admin', label: 'Admin' },
@@ -36,9 +37,9 @@ function Admin() {
         setError('');
         try {
             const [usersResponse, activityResponse, summaryResponse] = await Promise.all([
-                axios.get('http://localhost:8000/api/admin/users'),
-                axios.get('http://localhost:8000/api/admin/login-activity?limit=80'),
-                axios.get('http://localhost:8000/api/admin/security-summary')
+                axios.get(`${API_URL}/admin/users`),
+                axios.get(`${API_URL}/admin/login-activity?limit=80`),
+                axios.get(`${API_URL}/admin/security-summary`)
             ]);
             setUsers(usersResponse.data);
             setActivity(activityResponse.data);
@@ -63,7 +64,7 @@ function Admin() {
         setSavingUserId(userId);
         setError('');
         try {
-            const response = await axios.patch(`http://localhost:8000/api/admin/users/${userId}/role`, { role });
+            const response = await axios.patch(`${API_URL}/admin/users/${userId}/role`, { role });
             setUsers(current => current.map(user => (
                 user.id === userId ? { ...user, ...response.data } : user
             )));
@@ -79,7 +80,7 @@ function Admin() {
         setSavingUserId(userId);
         setError('');
         try {
-            const response = await axios.patch(`http://localhost:8000/api/admin/users/${userId}/status`, {
+            const response = await axios.patch(`${API_URL}/admin/users/${userId}/status`, {
                 is_active: isActive
             });
             setUsers(current => current.map(user => (

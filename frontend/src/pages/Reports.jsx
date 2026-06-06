@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { API_URL } from '../config/api'
 
-const API_URL = 'http://localhost:8000/api'
 const REPORT_DATA_MIN_DATE = '2020-01-01'
 const REPORT_DATA_MAX_DATE = '2025-03-31'
 const DEFAULT_REPORT_START_DATE = '2025-03-01'

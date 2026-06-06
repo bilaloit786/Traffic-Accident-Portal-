@@ -5,6 +5,7 @@ import FullscreenControl from '../components/FullscreenControl'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import axios from 'axios'
+import { API_URL } from '../config/api'
 
 // Fix Leaflet default marker icon issue
 delete L.Icon.Default.prototype._getIconUrl
@@ -92,7 +93,6 @@ function HeatmapLayer({ points, loaded }) {
     return null
 }
 
-const API_URL = 'http://localhost:8000/api'
 const DEFAULT_MAP_START_DATE = '2025-03-01'
 const DEFAULT_MAP_END_DATE = '2025-03-31'
 
