@@ -15,4 +15,4 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_ORIGINS
-        sync: false
+        value: https://traffic-accident-portal-front-bjqqkzkye.vercel.app

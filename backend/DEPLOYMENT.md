@@ -29,7 +29,7 @@ Set these in Render. Do not commit real values.
 ```env
 DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require
 SECRET_KEY=replace-with-a-long-random-secret
-FRONTEND_ORIGINS=https://your-vercel-app.vercel.app
+FRONTEND_ORIGINS=https://traffic-accident-portal-front-bjqqkzkye.vercel.app
 ENVIRONMENT=production
 ```
 
