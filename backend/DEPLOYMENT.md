@@ -31,6 +31,9 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require
 SECRET_KEY=replace-with-a-long-random-secret
 FRONTEND_ORIGINS=https://traffic-accident-portal-front-bjqqkzkye.vercel.app
 ENVIRONMENT=production
+ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@gmail.com
+ADMIN_PASSWORD=replace-with-a-temporary-admin-password
 ```
 
 `FRONTEND_ORIGINS` supports multiple comma-separated origins, for example:
@@ -38,6 +41,8 @@ ENVIRONMENT=production
 ```env
 FRONTEND_ORIGINS=https://app.example.com,https://preview.example.com
 ```
+
+If `ADMIN_USERNAME` and `ADMIN_PASSWORD` are set, the app creates or resets that admin account on startup. After the first successful login, change the admin password and remove `ADMIN_PASSWORD` from Render if you do not want it reset again on every deploy.
 
 ## Neon
 
@@ -65,10 +70,10 @@ The `db_exports/` folder is ignored and must not be pushed to GitHub.
 
 ## ML Model
 
-The trained model file is intentionally ignored by git:
+The trained model is included at:
 
 ```text
 ml/trained_model.pkl
 ```
 
-If predictions are required in production, provide this model to Render through a private artifact workflow or retrain it on the server before enabling prediction endpoints.
+Render clones this file with the backend repository so prediction endpoints can load the model at startup.

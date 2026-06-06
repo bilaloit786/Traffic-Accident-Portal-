@@ -7,7 +7,8 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db
+from app.core.auth import get_password_hash
+from app.database import SessionLocal, User, init_db
 from app.routes import accident_routes, prediction_routes, stats_routes, auth_routes, report_routes
 
 
@@ -27,6 +28,48 @@ def get_allowed_origins():
         if origin.strip()
     ]
     return local_origins + configured_origins
+
+
+def seed_admin_user():
+    """Create or reset an admin account from Render environment variables."""
+    username = os.getenv("ADMIN_USERNAME")
+    password = os.getenv("ADMIN_PASSWORD")
+    email = os.getenv("ADMIN_EMAIL", "admin@gmail.com")
+
+    if not username or not password:
+        print("Admin seed skipped: ADMIN_USERNAME and ADMIN_PASSWORD are not set")
+        return
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        hashed_password = get_password_hash(password)
+
+        if user:
+            user.email = email
+            user.hashed_password = hashed_password
+            user.role = "admin"
+            user.is_active = 1
+            action = "updated"
+        else:
+            user = User(
+                username=username,
+                email=email,
+                hashed_password=hashed_password,
+                role="admin",
+                is_active=1,
+            )
+            db.add(user)
+            action = "created"
+
+        db.commit()
+        print(f"✓ Admin user {action}: {username}")
+    except Exception as exc:
+        db.rollback()
+        print(f"Admin seed failed: {type(exc).__name__}: {exc}")
+        raise
+    finally:
+        db.close()
 
 # Create FastAPI app
 app = FastAPI(
@@ -63,6 +106,7 @@ async def startup_event():
     print("\nStarting server...")
     init_db()
     print("✓ Database initialized")
+    seed_admin_user()
     print("✓ API routes loaded")
     print("\nServer ready!")
     print("  - API Documentation: http://localhost:8000/api/docs")
