@@ -31,6 +31,7 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require
 SECRET_KEY=replace-with-a-long-random-secret
 FRONTEND_ORIGINS=https://traffic-accident-portal-front-bjqqkzkye.vercel.app
 ENVIRONMENT=production
+PYTHON_VERSION=3.11.9
 ADMIN_USERNAME=admin
 ADMIN_EMAIL=admin@gmail.com
 ADMIN_PASSWORD=replace-with-a-temporary-admin-password
