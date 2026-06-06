@@ -47,6 +47,20 @@ Import the local PostgreSQL export into Neon before pointing Render at the Neon 
 psql "$DATABASE_URL" -f db_exports/traffic_portal_postgres.sql
 ```
 
+If `psql` is not installed, use the Python importer from the backend folder:
+
+```bash
+export NEON_DATABASE_URL='postgresql://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require&channel_binding=require'
+source venv/bin/activate
+python scripts/import_sqlite_to_postgres.py --drop-existing
+```
+
+For a public-data-only import without users or login audit records:
+
+```bash
+python scripts/import_sqlite_to_postgres.py --drop-existing --exclude-auth
+```
+
 The `db_exports/` folder is ignored and must not be pushed to GitHub.
 
 ## ML Model
