@@ -41,5 +41,6 @@ ml_models/
 *.log
 logs/
 *.tmp
+db_exports/
 .cache/
 .pytest_cache/
