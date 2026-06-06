@@ -1,0 +1,45 @@
+# Environment and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.json
+config.json
+credentials.json
+api_keys.txt
+tokens.json
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Machine learning artifacts
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.model
+ml_models/
+
+# Logs and local files
+*.log
+logs/
+*.tmp
+.cache/
+.pytest_cache/
