@@ -7,8 +7,9 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.core.auth import get_password_hash
-from app.database import SessionLocal, User, init_db
+from app.database import Base, SessionLocal, User, engine, init_db
 from app.routes import accident_routes, prediction_routes, stats_routes, auth_routes, report_routes
 
 
@@ -21,6 +22,8 @@ def get_allowed_origins():
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "http://127.0.0.1:3000",
+        "https://traffic-accident-portal-front-end.vercel.app",
+        "https://traffic-accident-portal-front-bjqqkzkye.vercel.app",
     ]
     configured_origins = [
         origin.strip()
@@ -28,6 +31,49 @@ def get_allowed_origins():
         if origin.strip()
     ]
     return local_origins + configured_origins
+
+
+def sync_postgres_sequences():
+    """Keep PostgreSQL identity sequences aligned after SQLite data imports."""
+    if engine.dialect.name != "postgresql":
+        return
+
+    preparer = engine.dialect.identifier_preparer
+    with engine.begin() as connection:
+        for table in Base.metadata.sorted_tables:
+            id_column = table.columns.get("id")
+            if id_column is None:
+                continue
+
+            sequence_name = connection.execute(
+                text("SELECT pg_get_serial_sequence(:table_name, :column_name)"),
+                {"table_name": table.name, "column_name": id_column.name},
+            ).scalar()
+            if not sequence_name:
+                continue
+
+            quoted_table = preparer.quote(table.name)
+            quoted_id_column = preparer.quote(id_column.name)
+            max_id = connection.execute(
+                text(f"SELECT COALESCE(MAX({quoted_id_column}), 0) FROM {quoted_table}")
+            ).scalar() or 0
+
+            connection.execute(
+                text(
+                    "SELECT setval("
+                    "CAST(:sequence_name AS regclass), "
+                    ":sequence_value, "
+                    ":is_called"
+                    ")"
+                ),
+                {
+                    "sequence_name": sequence_name,
+                    "sequence_value": max(max_id, 1),
+                    "is_called": max_id > 0,
+                },
+            )
+
+    print("✓ PostgreSQL sequences synchronized")
 
 
 def seed_admin_user():
@@ -106,6 +152,7 @@ async def startup_event():
     print("\nStarting server...")
     init_db()
     print("✓ Database initialized")
+    sync_postgres_sequences()
     seed_admin_user()
     print("✓ API routes loaded")
     print("\nServer ready!")
