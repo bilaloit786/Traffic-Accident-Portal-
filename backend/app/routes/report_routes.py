@@ -176,13 +176,16 @@ def generate_report(
     ]
 
     # 7. Hotspots (top 5 rounded clusters)
+    rounded_latitude = (func.floor(Accident.latitude * 1000) / 1000.0).label("lat")
+    rounded_longitude = (func.floor(Accident.longitude * 1000) / 1000.0).label("lon")
+
     hotspot_results = filter_query(db.query(
-        func.round(Accident.latitude, 3).label('lat'),
-        func.round(Accident.longitude, 3).label('lon'),
+        rounded_latitude,
+        rounded_longitude,
         func.count(Accident.id).label('count'),
         func.sum(Accident.injuries).label('injuries'),
         func.sum(Accident.fatalities).label('fatalities')
-    )).group_by('lat', 'lon').order_by(func.count(Accident.id).desc()).limit(5).all()
+    )).group_by(rounded_latitude, rounded_longitude).order_by(func.count(Accident.id).desc()).limit(5).all()
 
     hotspots_list = []
     for row in hotspot_results:
