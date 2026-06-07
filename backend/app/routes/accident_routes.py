@@ -99,9 +99,12 @@ def get_heatmap_data(
     current_user: dict = Depends(get_current_active_user)
 ):
     """Get accident density data for heatmap visualization"""
+    rounded_latitude = (func.floor(Accident.latitude * 1000) / 1000.0).label("latitude")
+    rounded_longitude = (func.floor(Accident.longitude * 1000) / 1000.0).label("longitude")
+
     query = db.query(
-        Accident.latitude,
-        Accident.longitude,
+        rounded_latitude,
+        rounded_longitude,
         func.count(Accident.id).label('intensity')
     )
     
@@ -114,10 +117,7 @@ def get_heatmap_data(
         query = query.filter(Accident.date <= end_date)
     
     # Group by location (rounded to reduce points)
-    query = query.group_by(
-        func.round(Accident.latitude, 3),
-        func.round(Accident.longitude, 3)
-    )
+    query = query.group_by(rounded_latitude, rounded_longitude)
     
     results = query.all()
     
