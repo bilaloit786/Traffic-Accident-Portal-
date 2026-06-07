@@ -187,6 +187,17 @@ def generate_report(
         func.sum(Accident.fatalities).label('fatalities')
     )).group_by(rounded_latitude, rounded_longitude).order_by(func.count(Accident.id).desc()).limit(5).all()
 
+    roads = db.query(Road).filter(Road.latitude.isnot(None), Road.longitude.isnot(None)).all()
+
+    def get_nearest_road_name(latitude: float, longitude: float) -> str:
+        if not roads:
+            return "Unknown Location"
+        nearest_road = min(
+            roads,
+            key=lambda road: (road.latitude - latitude) ** 2 + (road.longitude - longitude) ** 2
+        )
+        return re.sub(r'\s*#\d+\s*$', '', nearest_road.name).strip()
+
     hotspots_list = []
     for row in hotspot_results:
         # Determine risk level based on count
@@ -197,12 +208,7 @@ def generate_report(
         else:
             risk_level = "Low"
 
-        # Find nearest road in DB
-        nearest_road = db.query(Road).order_by(
-            (Road.latitude - row.lat) * (Road.latitude - row.lat) +
-            (Road.longitude - row.lon) * (Road.longitude - row.lon)
-        ).first()
-        nearest_road_name = re.sub(r'\s*#\d+\s*$', '', nearest_road.name).strip() if nearest_road else "Unknown Location"
+        nearest_road_name = get_nearest_road_name(float(row.lat), float(row.lon))
 
         hotspots_list.append(
             HotspotDetail(
